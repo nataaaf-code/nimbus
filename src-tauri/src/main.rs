@@ -64,11 +64,9 @@ async fn blk<T: Send + 'static>(f: impl FnOnce() -> Result<T, String> + Send + '
 #[tauri::command] async fn set_radio(kind: String, on: bool) -> Result<(), String> { blk(move || sys::set_radio(&kind, on)).await }
 #[tauri::command] async fn levels() -> Result<(f32, Option<u32>), String> { blk(sys::levels).await }
 #[tauri::command] async fn system_stats() -> Result<sys::SystemStats, String> { blk(sys::system_stats).await }
-#[tauri::command] async fn gcal_status() -> google::GCalStatus { google::status() }
-#[tauri::command] async fn gcal_login() -> Result<(), String> { blk(google::login).await }
-#[tauri::command] async fn gcal_save_creds(id: String, secret: String) -> Result<(), String> { blk(move || google::save_creds(id, secret)).await }
-#[tauri::command] async fn gcal_open_folder() -> Result<(), String> { blk(google::open_config_folder).await }
-#[tauri::command] async fn gcal_events(min: String, max: String) -> Result<Vec<google::Ev>, String> { blk(move || google::events(&min, &max)).await }
+#[tauri::command] async fn ical_status() -> google::IcalStatus { google::status() }
+#[tauri::command] async fn ical_save_url(url: String) -> Result<(), String> { blk(move || google::save_url(url)).await }
+#[tauri::command] async fn ical_events(min: String, max: String) -> Result<Vec<google::Ev>, String> { blk(move || google::events(&min, &max)).await }
 
 // ---- Claude Code
 #[tauri::command] async fn cc_snapshot(since: i64) -> Result<serde_json::Value, String> { blk(move || cc::snapshot(since)).await }
@@ -219,7 +217,7 @@ fn main() {
             set_hit, focus_window, set_volume, set_brightness,
             media, media_ctl, wifi_list, wifi_connect, bt_list, bt_connect, open_settings,
             radios, set_radio, levels, system_stats,
-            gcal_status, gcal_login, gcal_save_creds, gcal_open_folder, gcal_events,
+            ical_status, ical_save_url, ical_events,
             get_autostart, set_autostart,
             cc_snapshot, cc_session, cc_decide, cc_run, cc_kill, cc_open, cc_hooks, cc_history, cc_clear_allow,
             spectrum_start, spectrum_stop

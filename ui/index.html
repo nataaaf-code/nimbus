@@ -248,16 +248,19 @@
                     <div class="week" id="calWeek"></div>
                     <div class="scroll evs" id="calEvs"></div>
                     <div class="cal-lock" id="calLock" hidden>
-                      <svg class="i"><use href="#i-cal" /></svg>
-                      <b id="calLockT">Google Calendar belum terhubung</b>
-                      <div class="cal-form" id="calForm" hidden>
-                        <input class="field" id="gcId" placeholder="Client ID" />
-                        <input class="field" id="gcSec" type="password" placeholder="Client Secret" />
-                      </div>
-                      <div class="row-btns">
-                        <button class="btn pri sm" id="gcLogin">Hubungkan Google</button>
-                        <button class="btn pri sm" id="gcSave" hidden>Simpan &amp; login</button>
-                        <button class="btn sm" id="gcFolder">Folder config</button>
+                      <div class="cal-tutorial">
+                        <b>Hubungkan Google Calendar</b>
+                        <ol class="tut-steps">
+                          <li>Buka <span class="tut-link" id="gcOpenCal">calendar.google.com</span> di browser</li>
+                          <li>Klik <kbd>⚙️</kbd> (pojok kanan atas) → <b>Setelan</b></li>
+                          <li>Pilih nama kalendermu di sidebar kiri</li>
+                          <li>Scroll ke bawah → <b>"Alamat rahasia dalam format iCal"</b></li>
+                          <li>Klik ikon copy, lalu tempel URL di bawah</li>
+                        </ol>
+                        <div class="cal-url-row">
+                          <input class="field" id="gcIcsUrl" placeholder="https://calendar.google.com/calendar/ical/…" autocomplete="off" spellcheck="false" />
+                          <button class="btn pri sm" id="gcSaveUrl">Simpan</button>
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -15,23 +15,17 @@ $("#sideSeg").onclick = (e) => { const b = e.target.closest("button"); if (b) se
 let sel = 0, evs = [];
 const day = (i) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i); return d; };
 const evStart = (x) => new Date(x.start.length === 10 ? x.start + "T00:00:00" : x.start);
+
 async function loadCal() {
-  let st = { connected: false, has_creds: false };
-  try { st = await inv("gcal_status"); } catch {}
-  const lock = $("#calLock");
-  lock.hidden = st.connected;
-  if (!st.connected) {
-    $("#calLockT").textContent = T ? (st.has_creds ? "Google Calendar belum terhubung" : "Masukkan kredensial OAuth Google") : "Jalankan sebagai aplikasi Windows";
-    $("#calForm").hidden = st.has_creds;
-    $("#gcSave").hidden = st.has_creds;
-    $("#gcLogin").hidden = !st.has_creds;
-    drawCal();
-    return;
-  }
-  try { evs = await inv("gcal_events", { min: day(0).toISOString(), max: day(7).toISOString() }); }
+  let st = { has_url: false };
+  try { st = await inv("ical_status"); } catch {}
+  $("#calLock").hidden = st.has_url;
+  if (!st.has_url) { drawCal(); return; }
+  try { evs = await inv("ical_events", { min: day(0).toISOString(), max: day(7).toISOString() }); }
   catch (e) { $("#calEvs").innerHTML = `<div class="empty">${esc(e)}</div>`; return; }
   drawCal();
 }
+
 function drawCal() {
   $("#calDate").textContent = day(sel).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" });
   const has = (i) => evs.some((x) => { const t = evStart(x).getTime(); return t >= day(i).getTime() && t < day(i + 1).getTime(); });
@@ -44,20 +38,32 @@ function drawCal() {
     ? r.map((x, i) => `<div class="ev${i === nextIdx ? " nx" : ""}"><time>${x.start.length === 10 ? "Seharian" : evStart(x).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}</time><span>${esc(x.title)}</span></div>`).join("")
     : `<div class="empty">${icon("cal")}Tidak ada acara</div>`;
 }
+
 $("#calWeek").onclick = (e) => { const b = e.target.closest("[data-d]"); if (b) { sel = +b.dataset.d; drawCal(); } };
-$("#gcLogin").onclick = async () => {
-  const b = $("#gcLogin"); b.textContent = "Menunggu login di browser…"; b.disabled = true;
-  try { await inv("gcal_login"); loadCal(); } catch (e) { toast(String(e), "err"); }
-  b.textContent = "Hubungkan Google"; b.disabled = false;
+
+// Tutorial: salin alamat ke clipboard agar bisa dibuka di browser
+$("#gcOpenCal").onclick = async () => {
+  try { await navigator.clipboard.writeText("https://calendar.google.com"); toast("URL disalin — tempel di browser"); }
+  catch { toast("Buka calendar.google.com di browser", "warn"); }
 };
-$("#gcSave").onclick = async () => {
-  const id = $("#gcId").value.trim(), secret = $("#gcSec").value.trim();
-  if (!id || !secret) return toast("Isi Client ID dan Client Secret", "warn");
-  const b = $("#gcSave"); b.disabled = true; b.textContent = "Menunggu login di browser…";
-  try { await inv("gcal_save_creds", { id, secret }); await inv("gcal_login"); loadCal(); } catch (e) { toast(String(e), "err"); }
-  b.disabled = false; b.textContent = "Simpan & login";
+
+// Simpan URL ICS
+$("#gcSaveUrl").onclick = async () => {
+  const url = $("#gcIcsUrl").value.trim();
+  if (!url) return toast("Tempel URL ICS dari Google Calendar", "warn");
+  const b = $("#gcSaveUrl"); b.disabled = true; b.textContent = "Menyimpan…";
+  try {
+    await inv("ical_save_url", { url });
+    evs = await inv("ical_events", { min: day(0).toISOString(), max: day(7).toISOString() });
+    $("#calLock").hidden = true;
+    drawCal();
+    toast("Google Calendar terhubung", "ok");
+  } catch (e) { toast(String(e), "err"); }
+  b.disabled = false; b.textContent = "Simpan";
 };
-$("#gcFolder").onclick = () => inv("gcal_open_folder").catch((e) => toast(String(e), "err"));
+
+// Enter di input URL juga simpan
+$("#gcIcsUrl").onkeydown = (e) => { if (e.key === "Enter") $("#gcSaveUrl").click(); };
 
 // ---------- tugas ----------
 let tds = ld("tds", []);
