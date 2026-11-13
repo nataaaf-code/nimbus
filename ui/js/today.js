@@ -1,4 +1,4 @@
-// Hari ini: Google Calendar, Tugas, Catatan, Fokus (pomodoro), riwayat Clipboard.
+// Hari ini: Google Calendar, Cuaca, Tugas, Catatan, Fokus (pomodoro), riwayat Clipboard.
 import { $, $$, S, inv, esc, icon, ld, sv, on, emit, mmss, toast, T, layout } from "./core.js";
 
 // ---------- segmen kanan ----------
@@ -19,11 +19,14 @@ const evStart = (x) => new Date(x.start.length === 10 ? x.start + "T00:00:00" : 
 async function loadCal() {
   let st = { has_url: false };
   try { st = await inv("ical_status"); } catch {}
-  $("#calLock").hidden = st.has_url;
-  if (!st.has_url) { drawCal(); return; }
+  const connected = st.has_url;
+  $("#calLock").hidden = connected;
+  $("#calDisc").hidden = !connected;
+  if (!connected) { drawCal(); return; }
   try { evs = await inv("ical_events", { min: day(0).toISOString(), max: day(7).toISOString() }); }
   catch (e) { $("#calEvs").innerHTML = `<div class="empty">${esc(e)}</div>`; return; }
   drawCal();
+  checkNextEvent();
 }
 
 function drawCal() {
@@ -56,7 +59,9 @@ $("#gcSaveUrl").onclick = async () => {
     await inv("ical_save_url", { url });
     evs = await inv("ical_events", { min: day(0).toISOString(), max: day(7).toISOString() });
     $("#calLock").hidden = true;
+    $("#calDisc").hidden = false;
     drawCal();
+    checkNextEvent();
     toast("Google Calendar terhubung", "ok");
   } catch (e) { toast(String(e), "err"); }
   b.disabled = false; b.textContent = "Simpan";
@@ -64,6 +69,17 @@ $("#gcSaveUrl").onclick = async () => {
 
 // Enter di input URL juga simpan
 $("#gcIcsUrl").onkeydown = (e) => { if (e.key === "Enter") $("#gcSaveUrl").click(); };
+
+// Putuskan kalender
+$("#calDisc").onclick = async () => {
+  await inv("ical_clear").catch(() => {});
+  evs = [];
+  drawCal();
+  S.calLive = null; emit("pill");
+  $("#calLock").hidden = false;
+  $("#calDisc").hidden = true;
+  toast("Kalender diputuskan");
+};
 
 // ---------- tugas ----------
 let tds = ld("tds", []);
@@ -149,13 +165,66 @@ async function pollClip() {
   } catch {}
 }
 
-on("tab", (t) => { if (t === "today") { loadCal(); pollClip(); } });
-on("open", () => { if (S.tab === "today") loadCal(); pollClip(); });
+// ---------- cuaca ----------
+function wxIcon(code) {
+  if (code === 0) return "☀";
+  if (code <= 3) return "⛅";
+  if (code <= 48) return "🌫";
+  if (code <= 67) return "🌧";
+  if (code <= 77) return "❄";
+  if (code <= 82) return "🌦";
+  if (code <= 86) return "❄";
+  return "⛈";
+}
+
+async function loadWeather() {
+  if (!T) return;
+  try {
+    const wx = await inv("get_weather");
+    $("#wxIcon").textContent = wxIcon(wx.code);
+    $("#wxTemp").textContent = Math.round(wx.temp) + "°C";
+    $("#wxDesc").textContent = wx.desc;
+    $("#wxCity").textContent = wx.city;
+    $("#wxStrip").classList.add("loaded");
+  } catch { /* silent — cuaca opsional */ }
+}
+
+$("#wxRefresh").onclick = async () => {
+  $("#wxStrip").classList.remove("loaded");
+  await loadWeather();
+};
+
+// ---------- next event di live pill ----------
+function checkNextEvent() {
+  const now = Date.now();
+  const twoH = 2 * 3600_000;
+  const next = evs.find(x => {
+    const t = evStart(x).getTime();
+    return t > now && t - now < twoH;
+  });
+  if (next) {
+    const mins = Math.round((evStart(next).getTime() - now) / 60_000);
+    S.calLive = {
+      dot: "cal",
+      proj: next.title.length > 28 ? next.title.slice(0, 27) + "…" : next.title,
+      act: "Acara",
+      meta: mins <= 1 ? "sekarang" : `${mins} mnt lagi`,
+    };
+  } else {
+    S.calLive = null;
+  }
+  emit("pill");
+}
+
+on("tab", (t) => { if (t === "today") { loadCal(); loadWeather(); pollClip(); } });
+on("open", () => { if (S.tab === "today") { loadCal(); loadWeather(); } pollClip(); });
 
 export function initToday() {
   setSeg(seg);
   drawTd();
   drawF();
   drawCal();
+  loadWeather();
   setInterval(pollClip, 2000);
+  setInterval(checkNextEvent, 60_000); // refresh next-event pill tiap menit
 }

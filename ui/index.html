@@ -243,8 +243,16 @@
               <!-- ================= HARI INI ================= -->
               <section class="view" data-view="today">
                 <div class="today">
+                  <div class="wx-strip" id="wxStrip">
+                    <span class="wx-ic" id="wxIcon">—</span>
+                    <b class="wx-temp" id="wxTemp">—</b>
+                    <span class="wx-desc" id="wxDesc"></span>
+                    <span class="grow"></span>
+                    <span class="wx-city" id="wxCity"></span>
+                    <button class="ibtn sm" id="wxRefresh" title="Perbarui cuaca"><svg class="i"><use href="#i-reload"/></svg></button>
+                  </div>
                   <div class="card cal">
-                    <div class="cal-h"><b id="calDate"></b><span class="sub">Google Calendar</span></div>
+                    <div class="cal-h"><b id="calDate"></b><span class="sub">Google Calendar</span><button class="ibtn sm" id="calDisc" hidden title="Putuskan kalender"><svg class="i"><use href="#i-x"/></svg></button></div>
                     <div class="week" id="calWeek"></div>
                     <div class="scroll evs" id="calEvs"></div>
                     <div class="cal-lock" id="calLock" hidden>
@@ -336,6 +344,7 @@
         <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" /></symbol>
         <symbol id="i-bot" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="3" /><path d="M12 4v4M9 13v2M15 13v2" /></symbol>
         <symbol id="i-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" class="fillme" /></symbol>
+        <symbol id="i-reload" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 9M20 4v5h-5M20 12a8 8 0 0 1-14 5.3L4 15M4 20v-5h5" /></symbol>
       </defs>
     </svg>
 

@@ -66,7 +66,9 @@ async fn blk<T: Send + 'static>(f: impl FnOnce() -> Result<T, String> + Send + '
 #[tauri::command] async fn system_stats() -> Result<sys::SystemStats, String> { blk(sys::system_stats).await }
 #[tauri::command] async fn ical_status() -> google::IcalStatus { google::status() }
 #[tauri::command] async fn ical_save_url(url: String) -> Result<(), String> { blk(move || google::save_url(url)).await }
+#[tauri::command] async fn ical_clear() -> Result<(), String> { blk(google::clear_url).await }
 #[tauri::command] async fn ical_events(min: String, max: String) -> Result<Vec<google::Ev>, String> { blk(move || google::events(&min, &max)).await }
+#[tauri::command] async fn get_weather() -> Result<weather::Weather, String> { blk(weather::get).await }
 
 // ---- Claude Code
 #[tauri::command] async fn cc_snapshot(since: i64) -> Result<serde_json::Value, String> { blk(move || cc::snapshot(since)).await }
@@ -171,6 +173,7 @@ fn input_loop(win: WebviewWindow, app: AppHandle) {
 }
 
 mod spectrum;
+mod weather;
 
 #[tauri::command]
 fn spectrum_start(app: AppHandle) { spectrum::start(app); }
@@ -217,7 +220,7 @@ fn main() {
             set_hit, focus_window, set_volume, set_brightness,
             media, media_ctl, wifi_list, wifi_connect, bt_list, bt_connect, open_settings,
             radios, set_radio, levels, system_stats,
-            ical_status, ical_save_url, ical_events,
+            ical_status, ical_save_url, ical_clear, ical_events, get_weather,
             get_autostart, set_autostart,
             cc_snapshot, cc_session, cc_decide, cc_run, cc_kill, cc_open, cc_hooks, cc_history, cc_clear_allow,
             spectrum_start, spectrum_stop

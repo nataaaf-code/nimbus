@@ -50,6 +50,7 @@ export const S = {
   alert: null, // izin pertama yang menunggu
   idleText: "",
   idleDot: false,
+  calLive: null, // {dot, proj, act, meta} — acara kalender yang akan segera mulai
 };
 const SIZES = {
   line: [150, 5, 3],

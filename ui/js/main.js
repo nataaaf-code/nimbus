@@ -10,7 +10,7 @@ if (T) B.classList.add("app");
 
 // ---------- pill ----------
 function renderPill() {
-  const L = S.agentLive || S.focusLive || null;
+  const L = S.agentLive || S.calLive || S.focusLive || null;
   S.live = L;
   if (L) {
     $("#liveDot").className = "ldot " + L.dot;

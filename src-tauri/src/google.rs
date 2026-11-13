@@ -32,6 +32,12 @@ pub fn status() -> IcalStatus {
     IcalStatus { has_url: ics_url().is_some() }
 }
 
+pub fn clear_url() -> Result<(), String> {
+    let path = dir().join("config.json");
+    if path.exists() { fs::remove_file(&path).map_err(er)?; }
+    Ok(())
+}
+
 pub fn save_url(url: String) -> Result<(), String> {
     let url = url.trim().to_string();
     if url.is_empty() {
