@@ -47,17 +47,25 @@ $("#calEvs").addEventListener("click", (e) => {
   if (el) showEvDetail(dayEvs[+el.dataset.i]);
 });
 
-// Escape HTML lalu ubah URL jadi link yang bisa diklik; \n jadi <br>
+// Cabut semua tag HTML dari teks ICS (Google Calendar kadang menyisipkan <br>, <a>, dll)
+// lalu konversi URL jadi link yang bisa diklik; newline jadi <br>
+function stripHtml(raw) {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = raw.replace(/<br\s*\/?>/gi, "\n"); // <br> → newline sebelum di-parse
+  return tmp.textContent || "";
+}
+
 function linkify(text) {
+  const plain = stripHtml(text);
   const urlRe = /https?:\/\/[^\s]+/g;
   let last = 0, html = "", m;
-  while ((m = urlRe.exec(text)) !== null) {
-    html += esc(text.slice(last, m.index)).replace(/\n/g, "<br>");
+  while ((m = urlRe.exec(plain)) !== null) {
+    html += esc(plain.slice(last, m.index)).replace(/\n/g, "<br>");
     const href = esc(m[0]);
     html += `<a href="${href}" target="_blank" rel="noopener">${href}</a>`;
     last = m.index + m[0].length;
   }
-  html += esc(text.slice(last)).replace(/\n/g, "<br>");
+  html += esc(plain.slice(last)).replace(/\n/g, "<br>");
   return html;
 }
 
