@@ -97,10 +97,14 @@ function drawSpec() {
   sCtx.clearRect(0, 0, sW, sH);
 
   if (liveBars) {
+    let energy = 0;
     for (let i = 0; i < N; i++) {
       const v = liveBars[i] ?? 0;
+      energy += v;
       bars[i] += (v - bars[i]) * (v > bars[i] ? 0.65 : 0.12);
     }
+    // Audio diam (atau capture belum siap) → pakai simulasi
+    if (energy < 0.1) simStep();
   } else {
     simStep();
   }
@@ -286,18 +290,15 @@ async function ensureSpecCapture() {
 
 export function initMedia() {
   draw();
-  if (!T) return;
-  poll();
-  setInterval(poll, 2000);
-  setInterval(() => { if (S.open && S.tab === "media" && md?.playing) tick(); }, 500);
 
+  // Event handler tab/open/close jalan di browser maupun Tauri
   on("tab", (t) => {
-    if (t === "media") { poll(); startSpec(); }
+    if (t === "media") { if (T) poll(); startSpec(); }
     else stopSpec();
   });
   on("open", () => {
     if (S.tab === "media") startSpec();
-    if (md?.playing) ensureSpecCapture();
+    if (T && md?.playing) ensureSpecCapture();
   });
   on("close", () => {
     stopSpec();
@@ -308,8 +309,15 @@ export function initMedia() {
     }
   });
 
-  // Mulai mini spec langsung kalau music sudah main saat init
-  if (md?.playing) ensureSpecCapture();
+  // Animasi canvas + pulse selalu mulai (simulasi berjalan di browser tanpa Tauri)
   startSpec();
-  drivePulse(); // selalu jalan untuk monitor mode line
+  drivePulse();
+
+  if (!T) return;
+
+  poll();
+  setInterval(poll, 2000);
+  setInterval(() => { if (S.open && S.tab === "media" && md?.playing) tick(); }, 500);
+  // Mulai capture langsung kalau musik sudah main saat init
+  if (md?.playing) ensureSpecCapture();
 }
