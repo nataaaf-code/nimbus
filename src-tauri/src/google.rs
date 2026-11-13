@@ -6,7 +6,11 @@ use std::{fs, path::PathBuf};
 #[derive(Serialize)]
 pub struct Ev {
     pub start: String,
+    pub end: String,
     pub title: String,
+    pub location: String,
+    pub description: String,
+    pub url: String,
 }
 
 #[derive(Serialize)]
@@ -83,19 +87,35 @@ pub fn events(min: &str, max: &str) -> Result<Vec<Ev>, String> {
     let mut start = String::new();
     let mut title = String::new();
 
+    let mut end = String::new();
+    let mut location = String::new();
+    let mut description = String::new();
+    let mut url = String::new();
+
     for line in unfolded.lines() {
         let line = line.trim_end_matches('\r');
         match line {
             "BEGIN:VEVENT" => {
                 in_event = true;
                 start = String::new();
+                end = String::new();
                 title = String::new();
+                location = String::new();
+                description = String::new();
+                url = String::new();
             }
             "END:VEVENT" => {
                 if in_event && !start.is_empty() && !title.is_empty() {
                     let s_date = &start[..start.len().min(10)];
                     if s_date >= min_d && s_date < max_d {
-                        result.push(Ev { start: start.clone(), title: title.clone() });
+                        result.push(Ev {
+                            start: start.clone(),
+                            end: end.clone(),
+                            title: title.clone(),
+                            location: location.clone(),
+                            description: description.chars().take(300).collect(),
+                            url: url.clone(),
+                        });
                     }
                 }
                 in_event = false;
@@ -106,7 +126,11 @@ pub fn events(min: &str, max: &str) -> Result<Vec<Ev>, String> {
                     let val = &line[colon + 1..];
                     match key.as_str() {
                         "DTSTART" => start = ics_date(val),
+                        "DTEND" => end = ics_date(val),
                         "SUMMARY" => title = ics_unescape(val),
+                        "LOCATION" => location = ics_unescape(val),
+                        "DESCRIPTION" => description = ics_unescape(val),
+                        "URL" => url = val.trim().to_string(),
                         _ => {}
                     }
                 }

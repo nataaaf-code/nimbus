@@ -12,7 +12,7 @@ function setSeg(s) {
 $("#sideSeg").onclick = (e) => { const b = e.target.closest("button"); if (b) setSeg(b.dataset.s); };
 
 // ---------- kalender ----------
-let sel = 0, evs = [];
+let sel = 0, evs = [], dayEvs = [];
 const day = (i) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i); return d; };
 const evStart = (x) => new Date(x.start.length === 10 ? x.start + "T00:00:00" : x.start);
 
@@ -34,13 +34,45 @@ function drawCal() {
   const has = (i) => evs.some((x) => { const t = evStart(x).getTime(); return t >= day(i).getTime() && t < day(i + 1).getTime(); });
   $("#calWeek").innerHTML = [0, 1, 2, 3, 4, 5, 6].map((i) => `<button class="${i === sel ? "on" : ""}${has(i) ? " has" : ""}" data-d="${i}">${day(i).toLocaleDateString("id-ID", { weekday: "short" })}<b>${day(i).getDate()}</b></button>`).join("");
   const t0 = day(sel).getTime();
-  const r = evs.filter((x) => { const t = evStart(x).getTime(); return t >= t0 && t < t0 + 864e5; });
+  dayEvs = evs.filter((x) => { const t = evStart(x).getTime(); return t >= t0 && t < t0 + 864e5; });
   const nowT = Date.now();
-  const nextIdx = sel === 0 ? r.findIndex((x) => evStart(x).getTime() >= nowT) : -1;
-  $("#calEvs").innerHTML = r.length
-    ? r.map((x, i) => `<div class="ev${i === nextIdx ? " nx" : ""}"><time>${x.start.length === 10 ? "Seharian" : evStart(x).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}</time><span>${esc(x.title)}</span></div>`).join("")
+  const nextIdx = sel === 0 ? dayEvs.findIndex((x) => evStart(x).getTime() >= nowT) : -1;
+  $("#calEvs").innerHTML = dayEvs.length
+    ? dayEvs.map((x, i) => `<div class="ev${i === nextIdx ? " nx" : ""}" data-i="${i}" role="button" tabindex="0"><time>${x.start.length === 10 ? "Seharian" : evStart(x).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}</time><span>${esc(x.title)}</span></div>`).join("")
     : `<div class="empty">${icon("cal")}Tidak ada acara</div>`;
 }
+
+$("#calEvs").addEventListener("click", (e) => {
+  const el = e.target.closest("[data-i]");
+  if (el) showEvDetail(dayEvs[+el.dataset.i]);
+});
+
+function showEvDetail(ev) {
+  const start = evStart(ev);
+  const end = ev.end ? new Date(ev.end.length === 10 ? ev.end + "T00:00:00" : ev.end) : null;
+  const allDay = ev.start.length === 10;
+  if (allDay) {
+    $("#evDTime").textContent = "Seharian";
+  } else {
+    const fmt = { hour: "2-digit", minute: "2-digit" };
+    const s = start.toLocaleTimeString("id-ID", fmt);
+    const e2 = end ? " – " + end.toLocaleTimeString("id-ID", fmt) : "";
+    $("#evDTime").textContent = s + e2;
+  }
+  $("#evDTitle").textContent = ev.title;
+  const hasLoc = ev.location?.trim();
+  $("#evDLoc").style.display = hasLoc ? "" : "none";
+  if (hasLoc) $("#evDLocTxt").textContent = ev.location;
+  const hasDesc = ev.description?.trim();
+  $("#evDDesc").style.display = hasDesc ? "" : "none";
+  if (hasDesc) $("#evDDesc").textContent = ev.description;
+  const hasUrl = ev.url?.trim();
+  $("#evDUrl").style.display = hasUrl ? "" : "none";
+  if (hasUrl) $("#evDUrl").href = ev.url;
+  $("#evDetail").classList.add("on");
+}
+
+$("#evDetailClose").onclick = () => $("#evDetail").classList.remove("on");
 
 $("#calWeek").onclick = (e) => { const b = e.target.closest("[data-d]"); if (b) { sel = +b.dataset.d; drawCal(); } };
 
