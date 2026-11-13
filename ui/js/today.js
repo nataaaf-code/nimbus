@@ -47,6 +47,20 @@ $("#calEvs").addEventListener("click", (e) => {
   if (el) showEvDetail(dayEvs[+el.dataset.i]);
 });
 
+// Escape HTML lalu ubah URL jadi link yang bisa diklik; \n jadi <br>
+function linkify(text) {
+  const urlRe = /https?:\/\/[^\s]+/g;
+  let last = 0, html = "", m;
+  while ((m = urlRe.exec(text)) !== null) {
+    html += esc(text.slice(last, m.index)).replace(/\n/g, "<br>");
+    const href = esc(m[0]);
+    html += `<a href="${href}" target="_blank" rel="noopener">${href}</a>`;
+    last = m.index + m[0].length;
+  }
+  html += esc(text.slice(last)).replace(/\n/g, "<br>");
+  return html;
+}
+
 function showEvDetail(ev) {
   const start = evStart(ev);
   const end = ev.end ? new Date(ev.end.length === 10 ? ev.end + "T00:00:00" : ev.end) : null;
@@ -65,7 +79,7 @@ function showEvDetail(ev) {
   if (hasLoc) $("#evDLocTxt").textContent = ev.location;
   const hasDesc = ev.description?.trim();
   $("#evDDesc").style.display = hasDesc ? "" : "none";
-  if (hasDesc) $("#evDDesc").textContent = ev.description;
+  if (hasDesc) $("#evDDesc").innerHTML = linkify(ev.description);
   const hasUrl = ev.url?.trim();
   $("#evDUrl").style.display = hasUrl ? "" : "none";
   if (hasUrl) $("#evDUrl").href = ev.url;

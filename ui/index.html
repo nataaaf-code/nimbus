@@ -252,9 +252,23 @@
                     <button class="ibtn sm" id="wxRefresh" title="Perbarui cuaca"><svg class="i"><use href="#i-reload"/></svg></button>
                   </div>
                   <div class="card cal">
-                    <div class="cal-h"><b id="calDate"></b><span class="sub">Google Calendar</span><button class="ibtn sm" id="calDisc" hidden title="Putuskan kalender"><svg class="i"><use href="#i-x"/></svg></button></div>
+
+                    <!-- header: tanggal + tombol putuskan -->
+                    <div class="cal-h">
+                      <b id="calDate"></b>
+                      <span class="sub">Google Calendar</span>
+                      <button class="ibtn sm" id="calDisc" hidden title="Putuskan kalender">
+                        <svg class="i"><use href="#i-x"/></svg>
+                      </button>
+                    </div>
+
+                    <!-- navigasi hari -->
                     <div class="week" id="calWeek"></div>
+
+                    <!-- daftar acara hari ini -->
                     <div class="scroll evs" id="calEvs"></div>
+
+                    <!-- overlay: koneksi kalender (belum ada URL) -->
                     <div class="cal-lock" id="calLock" hidden>
                       <div class="cal-tutorial">
                         <b>Hubungkan Google Calendar</b>
@@ -266,15 +280,21 @@
                           <li>Klik ikon copy, lalu tempel URL di bawah</li>
                         </ol>
                         <div class="cal-url-row">
-                          <input class="field" id="gcIcsUrl" placeholder="https://calendar.google.com/calendar/ical/…" autocomplete="off" spellcheck="false" />
+                          <input class="field" id="gcIcsUrl"
+                            placeholder="https://calendar.google.com/calendar/ical/…"
+                            autocomplete="off" spellcheck="false" />
                           <button class="btn pri sm" id="gcSaveUrl">Simpan</button>
                         </div>
                       </div>
                     </div>
+
+                    <!-- overlay: detail acara (klik event) -->
                     <div class="ev-detail" id="evDetail">
                       <div class="ev-d-head">
                         <div class="ev-d-time" id="evDTime"></div>
-                        <button class="ibtn sm" id="evDetailClose"><svg class="i"><use href="#i-x"/></svg></button>
+                        <button class="ibtn sm" id="evDetailClose">
+                          <svg class="i"><use href="#i-x"/></svg>
+                        </button>
                       </div>
                       <b class="ev-d-title" id="evDTitle"></b>
                       <div class="ev-d-loc" id="evDLoc">
@@ -282,8 +302,12 @@
                         <span id="evDLocTxt"></span>
                       </div>
                       <div class="ev-d-desc scroll" id="evDDesc"></div>
-                      <a class="btn sm pri" id="evDUrl" target="_blank" rel="noopener">Buka tautan</a>
+                      <a class="btn sm pri" id="evDUrl" target="_blank" rel="noopener">
+                        <svg class="i"><use href="#i-globe"/></svg>
+                        Buka tautan
+                      </a>
                     </div>
+
                   </div>
                   <div class="card side">
                     <div class="seg full" id="sideSeg"><button data-s="todo" class="on">Tugas</button><button data-s="note">Catatan</button><button data-s="focus">Fokus</button><button data-s="clip">Clipboard</button></div>
