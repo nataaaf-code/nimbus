@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Windows Notch</title>
+    <link rel="stylesheet" href="css/app.css" />
+  </head>
+  <body data-mode="idle">
+    <div id="desk" aria-hidden="true"></div>
+    <div id="shell">
+      <i class="ear l"></i><i class="ear r"></i>
+      <div id="notch">
+        <div id="linePulse" aria-hidden="true"></div>
+        <!-- IDLE -->
+        <div class="lay" data-lay="idle">
+          <div class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <canvas id="miniSpec" aria-hidden="true"></canvas>
+          <span class="idle-dot" id="idleDot"></span>
+          <span class="idle-txt" id="idleTxt"></span>
+        </div>
+
+        <!-- LIVE ACTIVITY -->
+        <div class="lay" data-lay="live">
+          <span class="ldot" id="liveDot"></span>
+          <b class="lproj" id="liveProj"></b>
+          <span class="lact" id="liveAct"></span>
+          <span class="lmeta" id="liveMeta"></span>
+        </div>
+
+        <!-- TOAST -->
+        <div class="lay" data-lay="toast">
+          <span class="ticon" id="toastIcon"></span>
+          <span class="ttxt" id="toastTxt"></span>
+        </div>
+
+        <!-- ALERT: izin -->
+        <div class="lay" data-lay="alert">
+          <div class="al-top">
+            <span class="adot"></span><b>Claude minta izin</b><span class="al-proj" id="alProj"></span>
+            <span class="al-count" id="alCount"></span>
+          </div>
+          <div class="al-tool"><span class="tchip" id="alTool"></span><code id="alSum"></code></div>
+          <div class="al-act">
+            <button class="btn ghost sm" id="alOpen">Detail</button>
+            <span class="grow"></span>
+            <button class="btn sm danger" id="alDeny">Tolak</button>
+            <button class="btn sm pri" id="alAllow">Izinkan</button>
+          </div>
+        </div>
+
+        <!-- OPEN -->
+        <div class="lay" data-lay="open">
+          <div class="open">
+            <header class="topbar">
+              <nav class="tabs" id="tabs">
+                <span class="tab-ind" id="tabInd"></span>
+                <button data-tab="agents"><svg class="i"><use href="#i-spark" /></svg>Agen<span class="tbadge" id="tbAgents"></span></button>
+                <button data-tab="media"><svg class="i"><use href="#i-music" /></svg>Media</button>
+                <button data-tab="system"><svg class="i"><use href="#i-sliders" /></svg>Sistem</button>
+                <button data-tab="today"><svg class="i"><use href="#i-cal" /></svg>Hari ini</button>
+              </nav>
+              <div class="clock"><b id="clkT"></b><span id="clkD"></span></div>
+            </header>
+
+            <main class="views">
+              <!-- ================= AGEN ================= -->
+              <section class="view" data-view="agents">
+                <!-- daftar -->
+                <div class="page" data-page="list">
+                  <div class="ph-row">
+                    <div class="ph-title">
+                      <b>Claude Code</b>
+                      <span class="sub" id="agToday">—</span>
+                    </div>
+                    <span class="grow"></span>
+                    <button class="ibtn" id="agSettingsBtn" title="Hook & pengaturan"><svg class="i"><use href="#i-gear" /></svg><span class="hookdot" id="hookDot"></span></button>
+                    <button class="btn pri" id="agNewBtn"><svg class="i"><use href="#i-plus" /></svg>Sesi baru</button>
+                  </div>
+                  <div class="banner" id="hookBanner" hidden>
+                    <svg class="i"><use href="#i-plug" /></svg>
+                    <div><b>Pasang hook Claude Code</b><span>Supaya izin bisa dijawab dari notch dan status tiap langkah tampil live.</span></div>
+                    <button class="btn pri sm" id="hookInstallQuick">Pasang</button>
+                  </div>
+                  <div class="scroll list" id="sessList"></div>
+                </div>
+
+                <!-- detail -->
+                <div class="page" data-page="detail">
+                  <div class="dh">
+                    <button class="ibtn" data-back title="Kembali (Esc)"><svg class="i"><use href="#i-back" /></svg></button>
+                    <div class="dh-t">
+                      <b id="dTitle"></b>
+                      <span class="sub" id="dSub"></span>
+                    </div>
+                    <span class="spill" id="dState"></span>
+                    <button class="btn danger sm" id="dStop" title="Hentikan proses Claude Code ini"><svg class="i"><use href="#i-stop" /></svg>Stop</button>
+                    <div class="menu-wrap">
+                      <button class="ibtn" id="dMoreBtn" title="Aksi lain"><svg class="i"><use href="#i-more" /></svg></button>
+                      <div class="menu" id="dMenu">
+                        <button data-act="terminal"><svg class="i"><use href="#i-term" /></svg>Lanjutkan di terminal</button>
+                        <button data-act="vscode"><svg class="i"><use href="#i-code" /></svg>Buka folder di VS Code</button>
+                        <button data-act="folder"><svg class="i"><use href="#i-folder" /></svg>Buka folder</button>
+                        <button data-act="copy"><svg class="i"><use href="#i-copy" /></svg>Salin ID sesi</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="meta" id="dMeta"></div>
+                  <div class="perms" id="dPerms"></div>
+                  <div class="scroll tl" id="dTl"></div>
+                  <button class="jump" id="dJump" hidden>↓ Terbaru</button>
+                  <div class="composer">
+                    <input id="dInput" placeholder="Kirim instruksi lanjutan…" autocomplete="off" />
+                    <select id="dMode" title="Mode izin"><option value="default">Tanya</option><option value="acceptEdits">Izinkan edit</option><option value="plan">Rencana</option></select>
+                    <button class="ibtn pri" id="dSend" title="Kirim (Enter)"><svg class="i"><use href="#i-send" /></svg></button>
+                  </div>
+                  <div class="hint" id="dHint"></div>
+                </div>
+
+                <!-- sesi baru -->
+                <div class="page" data-page="new">
+                  <div class="dh">
+                    <button class="ibtn" data-back><svg class="i"><use href="#i-back" /></svg></button>
+                    <div class="dh-t"><b>Sesi Claude Code baru</b><span class="sub">Dijalankan headless dan dikontrol penuh dari notch</span></div>
+                  </div>
+                  <div class="scroll form">
+                    <label class="lbl">Folder proyek</label>
+                    <input class="field" id="nCwd" placeholder="mis. F:\proyek-saya" />
+                    <div class="chips" id="nRecent"></div>
+                    <label class="lbl">Perintah</label>
+                    <textarea class="field area" id="nPrompt" placeholder="Apa yang harus dikerjakan Claude?"></textarea>
+                    <div class="row2">
+                      <div>
+                        <label class="lbl">Model</label>
+                        <div class="seg" id="nModel"><button data-v="default" class="on">Default</button><button data-v="opus">Opus</button><button data-v="sonnet">Sonnet</button><button data-v="haiku">Haiku</button></div>
+                      </div>
+                      <div>
+                        <label class="lbl">Izin</label>
+                        <div class="seg" id="nMode"><button data-v="default" class="on">Tanya</button><button data-v="acceptEdits">Izinkan edit</button><button data-v="plan">Rencana</button></div>
+                      </div>
+                    </div>
+                    <div class="form-foot"><span class="err" id="nErr"></span><button class="btn pri" id="nStart"><svg class="i"><use href="#i-play" /></svg>Mulai</button></div>
+                  </div>
+                </div>
+
+                <!-- pengaturan hook -->
+                <div class="page" data-page="settings">
+                  <div class="dh">
+                    <button class="ibtn" data-back><svg class="i"><use href="#i-back" /></svg></button>
+                    <div class="dh-t"><b>Integrasi Claude Code</b><span class="sub">Hook HTTP lokal · hanya 127.0.0.1</span></div>
+                  </div>
+                  <div class="scroll form">
+                    <div class="kv" id="hkInfo"></div>
+                    <div class="row-btns">
+                      <button class="btn pri" id="hkInstall">Pasang / perbarui hook</button>
+                      <button class="btn" id="hkRemove">Copot hook</button>
+                    </div>
+                    <p class="note">Hook ditulis ke <code>settings.json</code> level user (cadangan: <code>settings.json.notch-bak</code>). Bila notch tidak berjalan, Claude Code tetap jalan seperti biasa dan izin kembali ditanyakan di terminal/VS Code. Tidak ada izin otomatis kecuali kamu memilihnya.</p>
+                    <div class="sec-h"><b>Izin otomatis per sesi</b><button class="btn sm ghost" id="hkClearAllow">Hapus semua</button></div>
+                    <div id="hkAllow" class="mini-list"></div>
+                    <div class="sec-h"><b>Riwayat keputusan</b></div>
+                    <div id="hkHist" class="mini-list"></div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- ================= MEDIA ================= -->
+              <section class="view" data-view="media">
+                <div class="media">
+                  <div class="art" id="mArt"><svg class="i"><use href="#i-music" /></svg><div class="art-ov" id="mArtOv"><span></span></div></div>
+                  <div class="m-info">
+                    <div class="m-t"><b id="mTitle">Tidak ada media</b><span id="mArtist">Putar musik di Spotify atau pemutar lain</span></div>
+                    <div class="m-prog"><div class="bar"><i id="mBar"></i></div><div class="m-time"><span id="mPos">0:00</span><span id="mDur">0:00</span></div></div>
+                    <div class="m-ctl">
+                      <button class="ibtn lg" id="mPrev" title="Sebelumnya"><svg class="i"><use href="#i-prev" /></svg></button>
+                      <button class="ibtn xl pri" id="mPlay" title="Putar/Jeda"><svg class="i"><use href="#i-play" /></svg></button>
+                      <button class="ibtn lg" id="mNext" title="Berikutnya"><svg class="i"><use href="#i-next" /></svg></button>
+                      <span class="grow"></span>
+                      <div class="eq big"><i></i><i></i><i></i><i></i></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="spec-wrap"><canvas id="mSpec"></canvas></div>
+              </section>
+
+              <!-- ================= SISTEM ================= -->
+              <section class="view" data-view="system">
+                <div class="page" data-page="main">
+                  <div class="sys">
+                    <div class="sys-l">
+                      <label class="fill" id="sBrW"><svg class="i"><use href="#i-sun" /></svg><span>Kecerahan</span><em id="sBrV">—</em><input type="range" id="sBr" min="0" max="100" value="0" /></label>
+                      <label class="fill" id="sVoW"><svg class="i"><use href="#i-vol" /></svg><span>Volume</span><em id="sVoV">—</em><input type="range" id="sVo" min="0" max="100" value="0" /></label>
+                      <div class="tiles">
+                        <div class="tile" id="tWifi">
+                          <button class="t-main" id="tWifiBtn"><span class="t-ic"><svg class="i"><use href="#i-wifi" /></svg></span><span class="t-tx"><b>Wi-Fi</b><small id="tWifiS">…</small></span></button>
+                          <button class="t-more" id="tWifiMore" title="Pilih jaringan"><svg class="i"><use href="#i-chev" /></svg></button>
+                        </div>
+                        <div class="tile" id="tBt">
+                          <button class="t-main" id="tBtBtn"><span class="t-ic"><svg class="i"><use href="#i-bt" /></svg></span><span class="t-tx"><b>Bluetooth</b><small id="tBtS">…</small></span></button>
+                          <button class="t-more" id="tBtMore" title="Pilih perangkat"><svg class="i"><use href="#i-chev" /></svg></button>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="sys-r">
+                      <div class="mon">
+                        <div class="mrow"><span>CPU</span><b id="sCpu">—</b><svg class="spark" id="spCpu" viewBox="0 0 60 18" preserveAspectRatio="none"><polyline /></svg></div>
+                        <div class="mrow"><span>RAM</span><b id="sRam">—</b><div class="mbar"><i id="sRamBar"></i></div></div>
+                        <div class="mrow"><span>Jaringan</span><b id="sNet">—</b><svg class="spark" id="spNet" viewBox="0 0 60 18" preserveAspectRatio="none"><polyline /></svg></div>
+                      </div>
+                      <button class="srow" id="sAuto"><span>Jalankan saat Windows mulai</span><span class="switch" id="sAutoSw"></span></button>
+                      <div class="srow static"><span>Buka / tutup notch</span><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>Space</kbd></div>
+                      <div class="links">
+                        <button class="btn sm ghost" data-uri="ms-settings:display">Layar</button>
+                        <button class="btn sm ghost" data-uri="ms-settings:sound">Suara</button>
+                        <button class="btn sm ghost" data-uri="ms-settings:network">Jaringan</button>
+                        <button class="btn sm ghost" data-uri="ms-settings:bluetooth">Bluetooth</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="page" data-page="wifi">
+                  <div class="dh">
+                    <button class="ibtn" data-back><svg class="i"><use href="#i-back" /></svg></button>
+                    <div class="dh-t"><b>Wi-Fi</b><span class="sub" id="wfStat"></span></div>
+                    <span class="grow"></span>
+                    <button class="btn sm" id="wfRescan">Pindai ulang</button>
+                    <span class="switch" id="wfSw" role="switch" tabindex="0"></span>
+                  </div>
+                  <div class="scroll nets" id="wfList"></div>
+                  <div class="pwrow" id="wfPw" hidden><input class="field" id="wfPwI" type="password" placeholder="Kata sandi" /><button class="btn pri" id="wfPwB">Sambung</button></div>
+                </div>
+                <div class="page" data-page="bt">
+                  <div class="dh">
+                    <button class="ibtn" data-back><svg class="i"><use href="#i-back" /></svg></button>
+                    <div class="dh-t"><b>Bluetooth</b><span class="sub" id="btStat"></span></div>
+                    <span class="grow"></span>
+                    <span class="switch" id="btSw" role="switch" tabindex="0"></span>
+                  </div>
+                  <div class="scroll nets" id="btList"></div>
+                </div>
+              </section>
+
+              <!-- ================= HARI INI ================= -->
+              <section class="view" data-view="today">
+                <div class="today">
+                  <div class="card cal">
+                    <div class="cal-h"><b id="calDate"></b><span class="sub">Google Calendar</span></div>
+                    <div class="week" id="calWeek"></div>
+                    <div class="scroll evs" id="calEvs"></div>
+                    <div class="cal-lock" id="calLock" hidden>
+                      <svg class="i"><use href="#i-cal" /></svg>
+                      <b id="calLockT">Google Calendar belum terhubung</b>
+                      <div class="cal-form" id="calForm" hidden>
+                        <input class="field" id="gcId" placeholder="Client ID" />
+                        <input class="field" id="gcSec" type="password" placeholder="Client Secret" />
+                      </div>
+                      <div class="row-btns">
+                        <button class="btn pri sm" id="gcLogin">Hubungkan Google</button>
+                        <button class="btn pri sm" id="gcSave" hidden>Simpan &amp; login</button>
+                        <button class="btn sm" id="gcFolder">Folder config</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card side">
+                    <div class="seg full" id="sideSeg"><button data-s="todo" class="on">Tugas</button><button data-s="note">Catatan</button><button data-s="focus">Fokus</button><button data-s="clip">Clipboard</button></div>
+                    <div class="side-v" data-s="todo">
+                      <div class="todo-h"><span id="tdCount"></span><div class="bar thin"><i id="tdBar"></i></div></div>
+                      <div class="scroll todos" id="tdList"></div>
+                      <div class="addrow"><input class="field" id="tdIn" placeholder="Tambah tugas…" /><button class="ibtn pri" id="tdAdd"><svg class="i"><use href="#i-plus" /></svg></button></div>
+                    </div>
+                    <div class="side-v" data-s="note">
+                      <textarea class="field note-a" id="ntA" placeholder="Tulis ide, perintah, atau catatan…"></textarea>
+                      <div class="note-f"><span id="ntC">0 karakter</span><span id="ntS" class="sub"></span><span class="grow"></span><button class="btn sm pri" id="ntSend">Kirim ke Claude</button></div>
+                    </div>
+                    <div class="side-v" data-s="focus">
+                      <div class="focus">
+                        <div class="ring"><svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="52" /><circle class="fg" id="fcRing" cx="60" cy="60" r="52" /></svg><b id="fcTime">25:00</b></div>
+                        <div class="fc-r">
+                          <div class="seg" id="fcMode"><button data-m="25" class="on">Fokus 25</button><button data-m="5">Istirahat 5</button></div>
+                          <div class="row-btns"><button class="btn pri" id="fcStart">Mulai</button><button class="btn" id="fcReset">Reset</button></div>
+                          <span class="sub" id="fcN"></span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="side-v" data-s="clip">
+                      <div class="scroll clips" id="clList"></div>
+                      <span class="sub tiny">Lokal saja · maks 20 · teks mirip password/token diabaikan</span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </main>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ikon -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" /></symbol>
+        <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l11-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="17" cy="16" r="3" /></symbol>
+        <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="18" cy="18" r="2" /></symbol>
+        <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3" /><path d="M3 10h18M8 3v4M16 3v4" /></symbol>
+        <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+        <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0zM12 18v4" /></symbol>
+        <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></symbol>
+        <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" /></symbol>
+        <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" /></symbol>
+        <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2" /><circle cx="12" cy="12" r="1.2" /><circle cx="19" cy="12" r="1.2" /></symbol>
+        <symbol id="i-term" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3" /><path d="M7 9l3 3-3 3M13 15h4" /></symbol>
+        <symbol id="i-code" viewBox="0 0 24 24"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6" /></symbol>
+        <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></symbol>
+        <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></symbol>
+        <symbol id="i-send" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7" /></symbol>
+        <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z" class="fillme" /></symbol>
+        <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 4.5h3.5v15H7zM13.5 4.5H17v15h-3.5z" class="fillme" /></symbol>
+        <symbol id="i-prev" viewBox="0 0 24 24"><path d="M6 5v14M19 5l-10 7 10 7z" class="fillme" /></symbol>
+        <symbol id="i-next" viewBox="0 0 24 24"><path d="M18 5v14M5 5l10 7-10 7z" class="fillme" /></symbol>
+        <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></symbol>
+        <symbol id="i-vol" viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4z" /><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" /></symbol>
+        <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2 8.8a15 15 0 0 1 20 0M5 12.6a10 10 0 0 1 14 0M8.5 16.3a5 5 0 0 1 7 0" /><circle cx="12" cy="20" r="1" /></symbol>
+        <symbol id="i-bt" viewBox="0 0 24 24"><path d="M7 7l10 10-5 5V2l5 5L7 17" /></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></symbol>
+        <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></symbol>
+        <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3l10 18H2z" /><path d="M12 10v5M12 18v.01" /></symbol>
+        <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></symbol>
+        <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><path d="M14 3v6h6" /></symbol>
+        <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z" /><path d="M13.5 6.5l4 4" /></symbol>
+        <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></symbol>
+        <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></symbol>
+        <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" /></symbol>
+        <symbol id="i-bot" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="3" /><path d="M12 4v4M9 13v2M15 13v2" /></symbol>
+        <symbol id="i-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" class="fillme" /></symbol>
+      </defs>
+    </svg>
+
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>

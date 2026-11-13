@@ -1,0 +1,32 @@
+# Rust / Cargo
+src-tauri/target/
+src-tauri/gen/
+
+# Node
+node_modules/
+dist/
+
+# Tauri build artifacts
+*.app
+*.dmg
+*.deb
+*.AppImage
+*.msi
+*.exe
+!app-icon.png
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Env / secrets
+.env
+.env.local
+*.local
+
+# Editor
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
