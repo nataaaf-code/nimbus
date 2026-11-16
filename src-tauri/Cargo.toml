@@ -12,4 +12,4 @@ ureq = { version = "2", features = ["json"] }
 base64 = "0.22"
 rand = "0.8"
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.58", features = ["Win32_Media_Audio", "Win32_Media_Audio_Endpoints", "Win32_System_Com", "Win32_Foundation", "Media_Control", "Foundation", "Foundation_Collections", "Devices_WiFi", "Devices_Radios", "Networking_Connectivity", "Security_Credentials", "Storage_Streams", "Win32_NetworkManagement_WiFi", "Win32_NetworkManagement_IpHelper", "Win32_NetworkManagement_Ndis", "Win32_Networking_WinSock"] }
+windows = { version = "0.58", features = ["Win32_Media_Audio", "Win32_Media_Audio_Endpoints", "Win32_System_Com", "Win32_Foundation", "Media_Control", "Foundation", "Foundation_Collections", "Devices_WiFi", "Devices_Radios", "Networking_Connectivity", "Security_Credentials", "Storage_Streams", "Win32_NetworkManagement_WiFi", "Win32_NetworkManagement_IpHelper", "Win32_NetworkManagement_Ndis", "Win32_Networking_WinSock", "Win32_System_Power"] }

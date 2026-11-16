@@ -89,7 +89,7 @@ const RUN_KEY: &str = r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run";
 async fn get_autostart() -> Result<bool, String> {
     blk(|| {
         let mut c = Command::new("reg");
-        c.args(["query", RUN_KEY, "/v", "WindowsNotch"]);
+        c.args(["query", RUN_KEY, "/v", "Nimbus"]);
         sys::hide_console(&mut c);
         Ok(c.output().map(|o| o.status.success()).unwrap_or(false))
     }).await
@@ -100,9 +100,9 @@ async fn set_autostart(enabled: bool) -> Result<(), String> {
         let mut c = Command::new("reg");
         if enabled {
             let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-            c.args(["add", RUN_KEY, "/v", "WindowsNotch", "/t", "REG_SZ", "/d", &format!("\"{}\"", exe.to_string_lossy()), "/f"]);
+            c.args(["add", RUN_KEY, "/v", "Nimbus", "/t", "REG_SZ", "/d", &format!("\"{}\"", exe.to_string_lossy()), "/f"]);
         } else {
-            c.args(["delete", RUN_KEY, "/v", "WindowsNotch", "/f"]);
+            c.args(["delete", RUN_KEY, "/v", "Nimbus", "/f"]);
         }
         sys::hide_console(&mut c);
         let s = c.status().map_err(|e| e.to_string())?;
@@ -190,7 +190,7 @@ fn main() {
             let menu = Menu::with_items(app, &[&open, &autostart, &quit])?;
             let mut tray = TrayIconBuilder::new()
                 .menu(&menu)
-                .tooltip("Windows Notch")
+                .tooltip("Nimbus")
                 .on_menu_event(|app, e| match e.id().as_ref() {
                     "show" => show(app),
                     "autostart" => { let _ = app.emit("tray-autostart", ()); }

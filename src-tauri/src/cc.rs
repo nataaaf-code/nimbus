@@ -347,7 +347,7 @@ static HUB: OnceLock<Arc<Hub>> = OnceLock::new();
 fn hub() -> Result<&'static Arc<Hub>, String> { HUB.get().ok_or_else(|| "hub belum siap".to_string()) }
 
 fn notch_dir() -> PathBuf {
-    let p = PathBuf::from(std::env::var("APPDATA").unwrap_or_default()).join("WindowsNotch");
+    let p = PathBuf::from(std::env::var("APPDATA").unwrap_or_default()).join("Nimbus");
     let _ = fs::create_dir_all(&p);
     p
 }
@@ -576,7 +576,7 @@ fn on_hook(h: &Arc<Hub>, v: Value, peer: u16, s: &TcpStream) -> String {
                     Err(mpsc::RecvTimeoutError::Disconnected) => break String::new(),
                     Err(mpsc::RecvTimeoutError::Timeout) => {
                         if Instant::now() > deadline {
-                            break if managed { perm_json("deny", json!({"message": "Tidak dijawab di Windows Notch (timeout)"})) } else { String::new() };
+                            break if managed { perm_json("deny", json!({"message": "Tidak dijawab di Nimbus (timeout)"})) } else { String::new() };
                         }
                         if peer_closed(s) { break String::new(); }
                     }
@@ -769,7 +769,7 @@ pub fn decide(id: u64, action: String, note: Option<String>) -> Result<(), Strin
     let mut st = h.st.lock().map_err(|e| e.to_string())?;
     let Some(pos) = st.pending.iter().position(|p| p.id == id) else { return Err("Permintaan izin sudah tidak aktif".into()) };
     let p = st.pending.remove(pos);
-    let msg = note.filter(|s| !s.trim().is_empty()).unwrap_or_else(|| "Ditolak dari Windows Notch".into());
+    let msg = note.filter(|s| !s.trim().is_empty()).unwrap_or_else(|| "Ditolak dari Nimbus".into());
     let out = match action.as_str() {
         "allow" => perm_json("allow", json!({})),
         "allow_session" => {

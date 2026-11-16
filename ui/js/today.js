@@ -73,13 +73,14 @@ function showEvDetail(ev) {
   const start = evStart(ev);
   const end = ev.end ? new Date(ev.end.length === 10 ? ev.end + "T00:00:00" : ev.end) : null;
   const allDay = ev.start.length === 10;
+  const dateStr = start.toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short" });
   if (allDay) {
-    $("#evDTime").textContent = "Seharian";
+    $("#evDTime").textContent = dateStr + " · Seharian";
   } else {
     const fmt = { hour: "2-digit", minute: "2-digit" };
     const s = start.toLocaleTimeString("id-ID", fmt);
     const e2 = end ? " – " + end.toLocaleTimeString("id-ID", fmt) : "";
-    $("#evDTime").textContent = s + e2;
+    $("#evDTime").textContent = dateStr + " · " + s + e2;
   }
   $("#evDTitle").textContent = ev.title;
   const hasLoc = ev.location?.trim();
@@ -96,7 +97,10 @@ function showEvDetail(ev) {
 
 $("#evDetailClose").onclick = () => $("#evDetail").classList.remove("on");
 
-$("#calWeek").onclick = (e) => { const b = e.target.closest("[data-d]"); if (b) { sel = +b.dataset.d; drawCal(); } };
+$("#calWeek").onclick = (e) => {
+  const b = e.target.closest("[data-d]");
+  if (b) { sel = +b.dataset.d; $("#evDetail").classList.remove("on"); drawCal(); }
+};
 
 // Tutorial: salin alamat ke clipboard agar bisa dibuka di browser
 $("#gcOpenCal").onclick = async () => {

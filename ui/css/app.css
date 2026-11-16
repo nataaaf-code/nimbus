@@ -449,6 +449,7 @@ body.playing .art { transform: scale(1.02); }
 .spark polyline { fill: none; stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
 .mbar { height: 6px; border-radius: 3px; background: var(--s3); overflow: hidden; }
 .mbar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.5s var(--ease); }
+.mbar.bat i { background: var(--bat-color, var(--ok)); }
 .srow { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 14px; background: var(--s1); border: 1px solid var(--line); text-align: left; font-size: 12.5px; }
 .srow span:first-child { flex: 1; }
 .srow.static { cursor: default; }

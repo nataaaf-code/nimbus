@@ -126,6 +126,15 @@ async function stats() {
       spark("spNet", hist.net);
     }
     lastNet = { rx: s.net_rx, tx: s.net_tx, t: now };
+    if (s.battery != null) {
+      $("#sBatRow").hidden = false;
+      const pct = s.battery;
+      const icon = s.charging ? "⚡" : (pct <= 20 ? "🪫" : "🔋");
+      $("#sBat").textContent = `${icon} ${pct}%`;
+      $("#sBatBar").style.width = pct + "%";
+      $("#sBatBar").parentElement.style.setProperty("--bat-color",
+        pct <= 20 ? "var(--err)" : pct <= 50 ? "#f5a623" : "var(--ok)");
+    }
   } catch { $("#sCpu").textContent = "—"; }
 }
 

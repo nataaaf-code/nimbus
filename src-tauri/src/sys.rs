@@ -7,7 +7,7 @@ fn e<E: std::fmt::Display>(x: E) -> String { x.to_string() }
 
 #[derive(Serialize)] pub struct Media { pub title: String, pub artist: String, pub playing: bool, pub pos: i64, pub dur: i64, pub cover: Option<String> }
 #[derive(Serialize)] pub struct Net { pub ssid: String, pub secure: bool, pub bars: u8, pub connected: bool }
-#[derive(Serialize)] pub struct SystemStats { pub cpu: f32, pub memory_used: u64, pub memory_total: u64, pub net_rx: u64, pub net_tx: u64 }
+#[derive(Serialize)] pub struct SystemStats { pub cpu: f32, pub memory_used: u64, pub memory_total: u64, pub net_rx: u64, pub net_tx: u64, pub battery: Option<u8>, pub charging: bool }
 
 pub fn hide_console(c: &mut Command) { use std::os::windows::process::CommandExt; c.creation_flags(0x0800_0000); }
 fn ps(script: &str) -> R<String> {
@@ -34,7 +34,8 @@ pub fn system_stats() -> R<SystemStats> {
     };
     let (used, total) = crate::win::memory();
     let (rx, tx) = net_bytes();
-    Ok(SystemStats { cpu, memory_used: used, memory_total: total, net_rx: rx, net_tx: tx })
+    let (battery, charging) = battery_status().unwrap_or((None, false));
+    Ok(SystemStats { cpu, memory_used: used, memory_total: total, net_rx: rx, net_tx: tx, battery, charging })
 }
 fn net_bytes() -> (u64, u64) {
     use windows::Win32::NetworkManagement::IpHelper::{FreeMibTable, GetIfTable2, MIB_IF_TABLE2};
@@ -56,6 +57,15 @@ fn net_bytes() -> (u64, u64) {
         }
     }
     (rx, tx)
+}
+fn battery_status() -> Option<(Option<u8>, bool)> {
+    use windows::Win32::System::Power::{GetSystemPowerStatus, SYSTEM_POWER_STATUS};
+    let mut s = SYSTEM_POWER_STATUS::default();
+    unsafe { GetSystemPowerStatus(&mut s) }.ok()?;
+    // 255 = tidak ada baterai (desktop/PC), 0 = tidak diketahui
+    let pct = if s.BatteryLifePercent < 101 { Some(s.BatteryLifePercent) } else { None };
+    let charging = s.ACLineStatus == 1;
+    Some((pct, charging))
 }
 // ---- Volume & kecerahan
 #[repr(C)]
