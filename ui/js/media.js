@@ -97,14 +97,10 @@ function drawSpec() {
   sCtx.clearRect(0, 0, sW, sH);
 
   if (liveBars) {
-    let energy = 0;
     for (let i = 0; i < N; i++) {
       const v = liveBars[i] ?? 0;
-      energy += v;
       bars[i] += (v - bars[i]) * (v > bars[i] ? 0.65 : 0.12);
     }
-    // Audio diam (atau capture belum siap) → pakai simulasi
-    if (energy < 0.1) simStep();
   } else {
     simStep();
   }
