@@ -1,0 +1,45 @@
+name: Feature request
+description: Suggest an improvement or a new integration
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve
+      description: Describe the situation you are stuck in, not only the feature you want.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How should it look or behave in the notch?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - New agent provider
+        - Agents / session UI
+        - Notch and line mode
+        - Music / audio spectrum
+        - System controls
+        - Google Calendar
+        - Something else
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: This works on Windows without adding a network backend.
+          required: true
+        - label: I searched existing issues and discussions for this idea.
+          required: true

@@ -1,7 +1,10 @@
 [package]
 name = "nimbus"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
+description = "A floating notch for Windows with an AI agent hub, music, and system controls"
+license = "MIT"
+repository = "https://github.com/nataaaf-code/nimbus"
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 [dependencies]

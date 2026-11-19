@@ -1,0 +1,80 @@
+name: Bug report
+description: Something in Nimbus does not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please do not paste API keys, OAuth secrets, or full session transcripts. Redact paths that contain your name.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the Agents tab
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Agents / Providers
+        - Notch and line mode
+        - Music / audio spectrum
+        - System controls
+        - Google Calendar
+        - Build / install
+    validations:
+      required: true
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Agent provider
+      description: Only if the bug involves an agent session.
+      options:
+        - Not applicable
+        - Claude Code
+        - OpenCode
+        - Antigravity
+        - Codex
+        - Gemini CLI
+  - type: input
+    id: version
+    attributes:
+      label: Nimbus version
+      description: From the installer or the release tag. If you built from source, use the commit hash.
+      placeholder: v0.2.0
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2 (26100.1742)
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Drag images here, or paste the relevant Console output.
+      render: text
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues for the same problem.
+          required: true
+        - label: I removed API keys, tokens, and personal paths from this report.
+          required: true

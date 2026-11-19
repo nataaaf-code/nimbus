@@ -25,6 +25,10 @@ desktop.ini
 .env.local
 *.local
 
+# Local scratch
+*.log
+dev.log
+
 # Editor
 .vscode/settings.json
 .idea/
