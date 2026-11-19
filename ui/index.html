@@ -70,12 +70,28 @@
                 <div class="page" data-page="list">
                   <div class="ph-row">
                     <div class="ph-title">
-                      <b>Claude Code</b>
+                      <b>AI Agents</b>
                       <span class="sub" id="agToday">—</span>
                     </div>
                     <span class="grow"></span>
-                    <button class="ibtn" id="agSettingsBtn" title="Hook & pengaturan"><svg class="i"><use href="#i-gear" /></svg><span class="hookdot" id="hookDot"></span></button>
+                    <button class="btn sm" id="agProvidersBtn" title="Kelola provider, install CLI &amp; login"><svg class="i"><use href="#i-bot" /></svg><span id="agProvCount">Providers</span></button>
+                    <button class="ibtn" id="agSettingsBtn" title="Hook Claude Code &amp; pengaturan"><svg class="i"><use href="#i-gear" /></svg><span class="hookdot" id="hookDot"></span></button>
                     <button class="btn pri" id="agNewBtn"><svg class="i"><use href="#i-plus" /></svg>Sesi baru</button>
+                  </div>
+                  <div class="ag-filters">
+                    <div class="ag-search">
+                      <svg class="i"><use href="#i-search" /></svg>
+                      <input id="agSearch" placeholder="Cari sesi, proyek, atau branch…" autocomplete="off" />
+                      <button class="ibtn sm" id="agSearchClr" title="Bersihkan" hidden><svg class="i"><use href="#i-x" /></svg></button>
+                    </div>
+                    <div class="seg pfilt" id="agProvFilter">
+                      <button data-p="all" class="on">Semua</button>
+                      <button data-p="claude">Claude</button>
+                      <button data-p="opencode">OpenCode</button>
+                      <button data-p="antigravity">Antigravity</button>
+                      <button data-p="codex">Codex</button>
+                      <button data-p="gemini">Gemini</button>
+                    </div>
                   </div>
                   <div class="banner" id="hookBanner" hidden>
                     <svg class="i"><use href="#i-plug" /></svg>
@@ -85,23 +101,41 @@
                   <div class="scroll list" id="sessList"></div>
                 </div>
 
+                <!-- providers: install & login seperti T3 Code -->
+                <div class="page" data-page="providers">
+                  <div class="dh">
+                    <button class="ibtn" data-back title="Kembali (Esc)"><svg class="i"><use href="#i-back" /></svg></button>
+                    <div class="dh-t"><b>Providers &amp; Auth</b><span class="sub">Install CLI, login akun, atau simpan API key langsung di notch</span></div>
+                    <button class="btn sm" id="pvRefreshBtn"><svg class="i"><use href="#i-reload" /></svg>Refresh</button>
+                  </div>
+                  <div class="scroll pv-list" id="pvList"></div>
+                </div>
+
                 <!-- detail -->
                 <div class="page" data-page="detail">
                   <div class="dh">
                     <button class="ibtn" data-back title="Kembali (Esc)"><svg class="i"><use href="#i-back" /></svg></button>
                     <div class="dh-t">
-                      <b id="dTitle"></b>
+                      <div class="rename-row">
+                        <span class="ptag" id="dProv"></span>
+                        <b id="dTitle" title="Klik ganda untuk ganti nama"></b>
+                        <input id="dRenameIn" class="rename-in" hidden autocomplete="off" />
+                        <button class="ibtn xs" id="dRenameBtn" title="Ganti nama sesi"><svg class="i"><use href="#i-edit" /></svg></button>
+                      </div>
                       <span class="sub" id="dSub"></span>
                     </div>
                     <span class="spill" id="dState"></span>
-                    <button class="btn danger sm" id="dStop" title="Hentikan proses Claude Code ini"><svg class="i"><use href="#i-stop" /></svg>Stop</button>
+                    <button class="btn danger sm" id="dStop" title="Hentikan proses agent ini"><svg class="i"><use href="#i-stop" /></svg>Stop</button>
                     <div class="menu-wrap">
                       <button class="ibtn" id="dMoreBtn" title="Aksi lain"><svg class="i"><use href="#i-more" /></svg></button>
                       <div class="menu" id="dMenu">
+                        <button data-act="rename"><svg class="i"><use href="#i-edit" /></svg>Ganti nama sesi</button>
                         <button data-act="terminal"><svg class="i"><use href="#i-term" /></svg>Lanjutkan di terminal</button>
                         <button data-act="vscode"><svg class="i"><use href="#i-code" /></svg>Buka folder di VS Code</button>
                         <button data-act="folder"><svg class="i"><use href="#i-folder" /></svg>Buka folder</button>
                         <button data-act="copy"><svg class="i"><use href="#i-copy" /></svg>Salin ID sesi</button>
+                        <hr />
+                        <button data-act="delete" id="dMenuDel" class="danger"><svg class="i"><use href="#i-trash" /></svg><span>Hapus sesi</span></button>
                       </div>
                     </div>
                   </div>
@@ -109,10 +143,33 @@
                   <div class="perms" id="dPerms"></div>
                   <div class="scroll tl" id="dTl"></div>
                   <button class="jump" id="dJump" hidden>↓ Terbaru</button>
-                  <div class="composer">
-                    <input id="dInput" placeholder="Kirim instruksi lanjutan…" autocomplete="off" />
-                    <select id="dMode" title="Mode izin"><option value="default">Tanya</option><option value="acceptEdits">Izinkan edit</option><option value="plan">Rencana</option></select>
-                    <button class="ibtn pri" id="dSend" title="Kirim (Enter)"><svg class="i"><use href="#i-send" /></svg></button>
+                  <div class="composer-wrap" id="dCompWrap">
+                    <div class="att-row" id="dAtts" hidden></div>
+                    <div class="composer">
+                      <textarea id="dInput" rows="1" placeholder="Kirim instruksi lanjutan… (Shift+Enter baris baru, Ctrl+V tempel gambar)" autocomplete="off"></textarea>
+                      <div class="comp-bar">
+                        <button class="cbtn" id="dAttach" title="Lampirkan file atau gambar"><svg class="i"><use href="#i-clip" /></svg></button>
+                        <select class="csel" id="dModel" title="Model"></select>
+                        <select class="csel" id="dEffort" title="Effort / Reasoning">
+                          <option value="default">Effort: Default</option>
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                          <option value="xhigh">xHigh</option>
+                          <option value="max">Max</option>
+                        </select>
+                        <select class="csel" id="dMode" title="Mode izin">
+                          <option value="default">Izin: Tanya</option>
+                          <option value="acceptEdits">Izinkan edit</option>
+                          <option value="auto">Auto</option>
+                          <option value="plan">Rencana</option>
+                          <option value="dontAsk">Bypass / Full</option>
+                        </select>
+                        <button class="cbtn tog" id="dFork" title="Fork ke sesi baru saat mengirim"><svg class="i"><use href="#i-fork" /></svg><span>Fork</span></button>
+                        <span class="grow"></span>
+                        <button class="ibtn pri sm-send" id="dSend" title="Kirim (Enter)"><svg class="i"><use href="#i-send" /></svg></button>
+                      </div>
+                    </div>
                   </div>
                   <div class="hint" id="dHint"></div>
                 </div>
@@ -121,22 +178,62 @@
                 <div class="page" data-page="new">
                   <div class="dh">
                     <button class="ibtn" data-back><svg class="i"><use href="#i-back" /></svg></button>
-                    <div class="dh-t"><b>Sesi Claude Code baru</b><span class="sub">Dijalankan headless dan dikontrol penuh dari notch</span></div>
+                    <div class="dh-t"><b>Sesi Agent Baru</b><span class="sub">Pilih provider, model, dan jalankan headless dari notch</span></div>
                   </div>
                   <div class="scroll form">
+                    <label class="lbl">Agent / Provider</label>
+                    <div class="seg full" id="nProv">
+                      <button data-v="claude" class="on">Claude</button>
+                      <button data-v="opencode">OpenCode</button>
+                      <button data-v="antigravity">Antigravity</button>
+                      <button data-v="codex">Codex</button>
+                      <button data-v="gemini">Gemini</button>
+                    </div>
+                    <div class="banner warn" id="nProvWarn" hidden>
+                      <svg class="i"><use href="#i-warn" /></svg>
+                      <div><b id="nProvWarnT">—</b><span id="nProvWarnS">—</span></div>
+                      <button class="btn pri sm" id="nProvAct">—</button>
+                      <button class="btn sm" id="nProvMgr">Providers</button>
+                    </div>
                     <label class="lbl">Folder proyek</label>
-                    <input class="field" id="nCwd" placeholder="mis. F:\proyek-saya" />
+                    <div class="cwd-row">
+                      <input class="field" id="nCwd" placeholder="mis. F:\proyek-saya" />
+                      <button class="btn" id="nBrowse" title="Pilih folder"><svg class="i"><use href="#i-folder" /></svg>Pilih</button>
+                    </div>
                     <div class="chips" id="nRecent"></div>
-                    <label class="lbl">Perintah</label>
-                    <textarea class="field area" id="nPrompt" placeholder="Apa yang harus dikerjakan Claude?"></textarea>
-                    <div class="row2">
+                    <label class="lbl">Nama sesi (opsional)</label>
+                    <input class="field" id="nName" placeholder="mis. Perbaiki bug spektrum audio" autocomplete="off" />
+                    <div class="lbl-row">
+                      <label class="lbl">Perintah</label>
+                      <button class="btn sm ghost" id="nAttach" title="Lampirkan file atau gambar"><svg class="i"><use href="#i-clip" /></svg>Lampirkan</button>
+                    </div>
+                    <div class="att-row" id="nAtts" hidden></div>
+                    <textarea class="field area" id="nPrompt" placeholder="Apa yang harus dikerjakan agent? (Ctrl+V untuk tempel gambar)"></textarea>
+                    <div class="new-opts">
                       <div>
                         <label class="lbl">Model</label>
-                        <div class="seg" id="nModel"><button data-v="default" class="on">Default</button><button data-v="opus">Opus</button><button data-v="sonnet">Sonnet</button><button data-v="haiku">Haiku</button></div>
+                        <select class="field sm-sel" id="nModelSel"></select>
                       </div>
                       <div>
-                        <label class="lbl">Izin</label>
-                        <div class="seg" id="nMode"><button data-v="default" class="on">Tanya</button><button data-v="acceptEdits">Izinkan edit</button><button data-v="plan">Rencana</button></div>
+                        <label class="lbl">Effort / Variant</label>
+                        <select class="field sm-sel" id="nEffortSel">
+                          <option value="default">Default</option>
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                          <option value="xhigh">xHigh</option>
+                          <option value="max">Max</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label class="lbl">Mode Izin</label>
+                        <select class="field sm-sel" id="nModeSel">
+                          <option value="default">Tanya (Approval)</option>
+                          <option value="acceptEdits">Izinkan Edit</option>
+                          <option value="auto">Auto</option>
+                          <option value="plan">Rencana (Plan)</option>
+                          <option value="dontAsk">Bypass / Full Access</option>
+                        </select>
                       </div>
                     </div>
                     <div class="form-foot"><span class="err" id="nErr"></span><button class="btn pri" id="nStart"><svg class="i"><use href="#i-play" /></svg>Mulai</button></div>
@@ -384,6 +481,9 @@
         <symbol id="i-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" class="fillme" /></symbol>
         <symbol id="i-reload" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 9M20 4v5h-5M20 12a8 8 0 0 1-14 5.3L4 15M4 20v-5h5" /></symbol>
         <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 2C8.7 2 6 4.7 6 8c0 4.5 6 12 6 12s6-7.5 6-12c0-3.3-2.7-6-6-6z" /><circle cx="12" cy="8" r="2" class="fillme" /></symbol>
+        <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></symbol>
+        <symbol id="i-clip" viewBox="0 0 24 24"><path d="M21.4 11.1l-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5" /></symbol>
+        <symbol id="i-fork" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="12" cy="18" r="2.5" /><path d="M6 8.5v2a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-2M12 13.5v2" /></symbol>
       </defs>
     </svg>
 

@@ -210,10 +210,21 @@ pub fn media() -> R<Option<Media>> {
     let p = s.TryGetMediaPropertiesAsync().map_err(e)?.get().map_err(e)?;
     let t = s.GetTimelineProperties().map_err(e)?;
     let playing = s.GetPlaybackInfo().map_err(e)?.PlaybackStatus().map_err(e)? == GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing;
-    let cover = get_thumbnail_base64(&p);
+    let title = p.Title().map_err(e)?.to_string();
+    let artist = p.Artist().map_err(e)?.to_string();
+    // Cover di-cache per lagu: membaca + base64 thumbnail tiap poll (2 dtk) itu mahal
+    static COVER: std::sync::Mutex<(String, Option<String>)> = std::sync::Mutex::new((String::new(), None));
+    let key = format!("{title}\u{1f}{artist}");
+    let cover = {
+        let mut c = COVER.lock().map_err(e)?;
+        if c.0 != key || c.1.is_none() {
+            *c = (key, get_thumbnail_base64(&p));
+        }
+        c.1.clone()
+    };
     Ok(Some(Media {
-        title: p.Title().map_err(e)?.to_string(),
-        artist: p.Artist().map_err(e)?.to_string(),
+        title,
+        artist,
         playing,
         pos: t.Position().map_err(e)?.Duration / 10_000_000,
         dur: t.EndTime().map_err(e)?.Duration / 10_000_000,
@@ -500,7 +511,10 @@ pub fn wifi_connect(ssid: &str, pw: Option<String>) -> R<()> {
 mod tests {
     use super::*;
 
+    // Uji perangkat keras: butuh audio, layar, dan radio sungguhan. Jalankan manual dengan
+    // `cargo test -- --ignored`, jangan di CI.
     #[test]
+    #[ignore = "needs real audio, display, and radio hardware"]
     fn test_brightness_and_volume() {
         let (vol, bright) = levels().expect("levels should succeed");
         println!("Volume: {vol}, Brightness: {bright:?}");
@@ -512,12 +526,14 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "needs real radio hardware"]
     fn test_radios() {
         let r = radios().expect("radios should succeed");
         println!("WiFi on: {}, ssid: {:?}, BT on: {}, name: {:?}, battery: {:?}", r.wifi_on, r.wifi_ssid, r.bt_on, r.bt_name, r.bt_battery);
     }
 
     #[test]
+    #[ignore = "needs real Bluetooth hardware"]
     fn test_bt_list() {
         let list = bt_list().expect("bt_list should succeed");
         println!("Paired BT devices: {}", list.len());
@@ -527,6 +543,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "needs a real Wi-Fi adapter"]
     fn test_wifi_list() {
         match wifi_list() {
             Ok(list) => {

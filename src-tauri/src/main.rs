@@ -1,4 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+mod agents;
 mod cc;
 mod google;
 mod sys;
@@ -74,14 +75,66 @@ async fn blk<T: Send + 'static>(f: impl FnOnce() -> Result<T, String> + Send + '
 #[tauri::command] async fn cc_snapshot(since: i64) -> Result<serde_json::Value, String> { blk(move || cc::snapshot(since)).await }
 #[tauri::command] async fn cc_session(id: String, ver: u64) -> Result<serde_json::Value, String> { blk(move || cc::session(id, ver)).await }
 #[tauri::command] async fn cc_decide(id: u64, action: String, note: Option<String>) -> Result<(), String> { blk(move || cc::decide(id, action, note)).await }
-#[tauri::command] async fn cc_run(cwd: String, prompt: String, resume: Option<String>, model: Option<String>, mode: Option<String>) -> Result<String, String> {
-    blk(move || cc::run(cwd, prompt, resume, model, mode)).await
+#[tauri::command] async fn cc_run(
+    cwd: String,
+    prompt: String,
+    resume: Option<String>,
+    model: Option<String>,
+    effort: Option<String>,
+    mode: Option<String>,
+    name: Option<String>,
+    fork: Option<bool>,
+    attachments: Option<Vec<String>>,
+) -> Result<String, String> {
+    blk(move || cc::run(cwd, prompt, resume, model, effort, mode, name, fork, attachments)).await
+}
+#[tauri::command] async fn cc_rename(id: String, title: String) -> Result<(), String> { blk(move || cc::rename(id, title)).await }
+#[tauri::command] async fn cc_delete(id: String) -> Result<(), String> { blk(move || cc::delete_session(id)).await }
+#[tauri::command] async fn cc_save_attachment(name: String, data_b64: String) -> Result<String, String> {
+    blk(move || cc::save_attachment(name, data_b64)).await
+}
+#[tauri::command] async fn cc_pick_files(win: WebviewWindow) -> Result<Vec<String>, String> {
+    let hwnd = win.hwnd().map(|h| h.0 as isize).unwrap_or(0);
+    blk(move || Ok(win::pick_files(hwnd))).await
+}
+#[tauri::command] async fn cc_pick_folder(win: WebviewWindow, title: Option<String>) -> Result<Option<String>, String> {
+    let hwnd = win.hwnd().map(|h| h.0 as isize).unwrap_or(0);
+    let t = title.unwrap_or_else(|| "Pilih folder proyek".to_string());
+    blk(move || Ok(win::pick_folder(hwnd, &t))).await
 }
 #[tauri::command] async fn cc_kill(pid: u32) -> Result<(), String> { blk(move || cc::kill(pid)).await }
 #[tauri::command] async fn cc_open(kind: String, cwd: String, session: Option<String>) -> Result<(), String> { blk(move || cc::open(kind, cwd, session)).await }
 #[tauri::command] async fn cc_hooks(action: String) -> Result<serde_json::Value, String> { blk(move || cc::hooks(action)).await }
 #[tauri::command] async fn cc_history() -> Result<serde_json::Value, String> { blk(cc::history).await }
 #[tauri::command] async fn cc_clear_allow() -> Result<(), String> { blk(cc::clear_allow).await }
+
+// ---- Multi-Agent Hub (T3 Code-style: Claude, OpenCode, Antigravity, Codex, Gemini)
+#[tauri::command] async fn ag_snapshot(since: i64) -> Result<serde_json::Value, String> { blk(move || agents::snapshot(since)).await }
+#[tauri::command] async fn ag_session(provider: String, id: String, ver: u64) -> Result<serde_json::Value, String> { blk(move || agents::session(provider, id, ver)).await }
+#[tauri::command] async fn ag_run(
+    provider: String,
+    cwd: String,
+    prompt: String,
+    resume: Option<String>,
+    model: Option<String>,
+    effort: Option<String>,
+    mode: Option<String>,
+    name: Option<String>,
+    fork: Option<bool>,
+    attachments: Option<Vec<String>>,
+) -> Result<String, String> {
+    blk(move || agents::run(provider, cwd, prompt, resume, model, effort, mode, name, fork, attachments)).await
+}
+#[tauri::command] async fn ag_rename(provider: String, id: String, title: String) -> Result<(), String> { blk(move || agents::rename(provider, id, title)).await }
+#[tauri::command] async fn ag_delete(provider: String, id: String) -> Result<(), String> { blk(move || agents::delete_session(provider, id)).await }
+#[tauri::command] async fn ag_kill(provider: String, pid: u32) -> Result<(), String> { blk(move || agents::kill(provider, pid)).await }
+#[tauri::command] async fn ag_open(provider: String, kind: String, cwd: String, session: Option<String>) -> Result<(), String> { blk(move || agents::open(provider, kind, cwd, session)).await }
+#[tauri::command] async fn ag_providers(refresh: Option<bool>) -> Result<serde_json::Value, String> { blk(move || agents::providers(refresh.unwrap_or(false))).await }
+#[tauri::command] async fn ag_refresh_models(provider: String) -> Result<serde_json::Value, String> { blk(move || agents::refresh_models(provider)).await }
+#[tauri::command] async fn ag_install_provider(provider: String) -> Result<(), String> { blk(move || agents::install_provider(provider)).await }
+#[tauri::command] async fn ag_login_oauth(provider: String, mode: Option<String>) -> Result<(), String> { blk(move || agents::login_oauth(provider, mode)).await }
+#[tauri::command] async fn ag_save_key(provider: String, key: String) -> Result<serde_json::Value, String> { blk(move || agents::save_key(provider, key)).await }
+#[tauri::command] async fn ag_logout_provider(provider: String) -> Result<serde_json::Value, String> { blk(move || agents::logout_provider(provider)).await }
 
 // ---- Autostart
 const RUN_KEY: &str = r"HKCU\Software\Microsoft\Windows\CurrentVersion\Run";
@@ -222,7 +275,8 @@ fn main() {
             radios, set_radio, levels, system_stats,
             ical_status, ical_save_url, ical_clear, ical_events, get_weather,
             get_autostart, set_autostart,
-            cc_snapshot, cc_session, cc_decide, cc_run, cc_kill, cc_open, cc_hooks, cc_history, cc_clear_allow,
+            cc_snapshot, cc_session, cc_decide, cc_run, cc_rename, cc_delete, cc_save_attachment, cc_pick_files, cc_pick_folder, cc_kill, cc_open, cc_hooks, cc_history, cc_clear_allow,
+            ag_snapshot, ag_session, ag_run, ag_rename, ag_delete, ag_kill, ag_open, ag_providers, ag_refresh_models, ag_install_provider, ag_login_oauth, ag_save_key, ag_logout_provider,
             spectrum_start, spectrum_stop
         ])
         .run(tauri::generate_context!())

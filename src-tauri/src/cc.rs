@@ -42,14 +42,14 @@ fn iso_ms(s: &str) -> Option<i64> {
     Some((days * 86_400 + h * 3_600 + mi * 60 + se) * 1_000 + ms)
 }
 
-fn trunc(s: &str, n: usize) -> String {
+pub(crate) fn trunc(s: &str, n: usize) -> String {
     if s.chars().count() <= n { return s.to_string(); }
     let mut o: String = s.chars().take(n).collect();
     o.push('…');
     o
 }
 /// Potong semua string panjang di dalam nilai JSON (agar IPC ringan).
-fn shrink(v: &Value, n: usize) -> Value {
+pub(crate) fn shrink(v: &Value, n: usize) -> Value {
     match v {
         Value::String(s) => Value::String(trunc(s, n)),
         Value::Array(a) => Value::Array(a.iter().take(60).map(|x| shrink(x, n)).collect()),
@@ -57,7 +57,7 @@ fn shrink(v: &Value, n: usize) -> Value {
         _ => v.clone(),
     }
 }
-fn base(p: &str) -> String {
+pub(crate) fn base(p: &str) -> String {
     p.trim_end_matches(['\\', '/']).rsplit(['\\', '/']).next().unwrap_or(p).to_string()
 }
 
@@ -99,6 +99,7 @@ struct Tx {
     ver: u64,
     session_id: String,
     title: String,
+    custom_title: bool,
     last_prompt: String,
     cwd: String,
     branch: String,
@@ -167,8 +168,8 @@ impl Tx {
         if let Some(x) = gs("version") { self.version = x; }
         if let Some(x) = gs("entrypoint") { self.entry = x; }
         match ty {
-            "ai-title" => if let Some(x) = gs("aiTitle") { self.title = x; },
-            "custom-title" => if let Some(x) = gs("customTitle") { self.title = x; },
+            "ai-title" => if !self.custom_title { if let Some(x) = gs("aiTitle") { self.title = x; } },
+            "custom-title" => if let Some(x) = gs("customTitle") { self.title = x; self.custom_title = true; },
             "summary" => if self.title.is_empty() { if let Some(x) = gs("summary") { self.title = x; } },
             "last-prompt" => if let Some(x) = gs("lastPrompt") { self.last_prompt = x; },
             "user" | "assistant" => {}
@@ -345,8 +346,9 @@ pub struct Hub {
 
 static HUB: OnceLock<Arc<Hub>> = OnceLock::new();
 fn hub() -> Result<&'static Arc<Hub>, String> { HUB.get().ok_or_else(|| "hub belum siap".to_string()) }
+pub(crate) fn app_handle() -> Option<AppHandle> { HUB.get().map(|h| h.app.clone()) }
 
-fn notch_dir() -> PathBuf {
+pub(crate) fn notch_dir() -> PathBuf {
     let p = PathBuf::from(std::env::var("APPDATA").unwrap_or_default()).join("Nimbus");
     let _ = fs::create_dir_all(&p);
     p
@@ -721,7 +723,7 @@ pub fn snapshot(since_ms: i64) -> Result<Value, String> {
         let title = if !t.title.is_empty() { t.title.clone() } else if !t.last_prompt.is_empty() { trunc(&t.last_prompt, 80) } else { "Sesi tanpa judul".into() };
         let proc_v = if pid != 0 { by_pid.get(&pid).cloned() } else { None };
         sessions.push(json!({
-            "id": sid, "path": path.to_string_lossy(), "title": title, "prompt": t.last_prompt,
+            "id": sid, "provider": "claude", "path": path.to_string_lossy(), "title": title, "prompt": t.last_prompt,
             "cwd": t.cwd, "project": base(&t.cwd), "branch": t.branch, "model": t.model, "version": t.version, "entry": t.entry,
             "start": t.first_ts, "turn": t.turn_ts, "last": t.last_ts.max(t.mtime.min(now)), "ver": t.ver,
             "tok": {"in": t.tok_in, "out": t.tok_out, "cache": t.tok_cache},
@@ -828,33 +830,201 @@ pub fn claude_bin() -> Option<PathBuf> {
     None
 }
 
-pub fn run(cwd: String, prompt: String, resume: Option<String>, model: Option<String>, mode: Option<String>) -> Result<String, String> {
+fn update_sessions_index(project_dir: &Path, session_id: &str, new_title: Option<&str>, remove: bool) {
+    let idx = project_dir.join("sessions-index.json");
+    let Ok(raw) = fs::read_to_string(&idx) else { return };
+    let Ok(mut v) = serde_json::from_str::<Value>(&raw) else { return };
+    let Some(entries) = v.get_mut("entries").and_then(|e| e.as_array_mut()) else { return };
+    let mut changed = false;
+    if remove {
+        let before = entries.len();
+        entries.retain(|e| e.get("sessionId").and_then(|s| s.as_str()) != Some(session_id));
+        changed = entries.len() != before;
+    } else if let Some(title) = new_title {
+        for e in entries.iter_mut() {
+            if e.get("sessionId").and_then(|s| s.as_str()) == Some(session_id) {
+                e["customTitle"] = json!(title);
+                changed = true;
+            }
+        }
+    }
+    if changed {
+        if let Ok(s) = serde_json::to_string_pretty(&v) {
+            let _ = fs::write(&idx, s + "\n");
+        }
+    }
+}
+
+/// Rename sesi langsung ke file transcript `.jsonl` (`custom-title`) agar sinkron dengan Claude Code CLI/VS Code.
+pub fn rename(id: String, title: String) -> Result<(), String> {
+    let clean: String = title.replace(['\r', '\n'], " ").split_whitespace().collect::<Vec<_>>().join(" ");
+    if clean.is_empty() { return Err("Nama sesi tidak boleh kosong".into()); }
+    let h = hub()?.clone();
+    let path = {
+        let mut st = h.st.lock().map_err(|e| e.to_string())?;
+        if !st.tx.values().any(|t| t.session_id == id) { scan(&mut st); }
+        let Some((p, t)) = st.tx.iter_mut().find(|(_, t)| t.session_id == id) else {
+            return Err("Sesi tidak ditemukan".into());
+        };
+        t.title = clean.clone();
+        t.custom_title = true;
+        t.ver += 1;
+        p.clone()
+    };
+    let projects_root = claude_dir().join("projects");
+    if !path.starts_with(&projects_root) { return Err("Jalur transcript tidak valid".into()); }
+    let need_nl = fs::File::open(&path).ok().and_then(|mut f| {
+        let len = f.metadata().ok()?.len();
+        if len == 0 { return Some(false); }
+        f.seek(SeekFrom::End(-1)).ok()?;
+        let mut b = [0u8; 1];
+        f.read_exact(&mut b).ok()?;
+        Some(b[0] != b'\n')
+    }).unwrap_or(false);
+    let line = serde_json::to_string(&json!({
+        "type": "custom-title",
+        "customTitle": clean,
+        "sessionId": id,
+    })).map_err(|e| e.to_string())?;
+    let mut f = fs::OpenOptions::new().append(true).open(&path).map_err(|e| format!("Gagal menulis transcript: {e}"))?;
+    if need_nl { f.write_all(b"\n").map_err(|e| e.to_string())?; }
+    f.write_all(format!("{line}\n").as_bytes()).map_err(|e| e.to_string())?;
+    if let Some(dir) = path.parent() {
+        update_sessions_index(dir, &id, Some(&clean), false);
+    }
+    h.emit("renamed", json!({"session": id, "title": clean}));
+    Ok(())
+}
+
+/// Hapus sesi Claude Code secara permanen dari `~/.claude/projects/...`.
+pub fn delete_session(id: String) -> Result<(), String> {
+    let h = hub()?.clone();
+    let path = {
+        let mut st = h.st.lock().map_err(|e| e.to_string())?;
+        scan(&mut st);
+        let alive: HashSet<u32> = win::processes().into_iter()
+            .filter(|p| p.name.eq_ignore_ascii_case("claude.exe"))
+            .map(|p| p.pid)
+            .collect();
+        let live_pid = st.live.get(&id).map(|l| l.pid).filter(|pid| *pid != 0 && alive.contains(pid));
+        let managed_live = st.managed.iter().any(|m| m.session == id && !m.done && (m.pid == 0 || alive.contains(&m.pid)));
+        if live_pid.is_some() || managed_live {
+            return Err("Sesi masih berjalan. Hentikan prosesnya dulu sebelum menghapus.".into());
+        }
+        let Some(p) = st.tx.iter().find(|(_, t)| t.session_id == id).map(|(p, _)| p.clone()) else {
+            return Err("Sesi tidak ditemukan".into());
+        };
+        p
+    };
+    let projects_root = claude_dir().join("projects");
+    if !path.starts_with(&projects_root) { return Err("Jalur transcript tidak valid".into()); }
+    if path.exists() {
+        fs::remove_file(&path).map_err(|e| format!("Gagal menghapus file sesi: {e}"))?;
+    }
+    let sub_dir = path.with_extension("");
+    if sub_dir.is_dir() && sub_dir.file_name().and_then(|n| n.to_str()) == Some(id.as_str()) {
+        let _ = fs::remove_dir_all(&sub_dir);
+    }
+    if let Some(dir) = path.parent() {
+        update_sessions_index(dir, &id, None, true);
+    }
+    if let Ok(mut st) = h.st.lock() {
+        st.tx.remove(&path);
+        st.live.remove(&id);
+        st.allow_session.remove(&id);
+        st.pending.retain(|p| p.session != id);
+        st.managed.retain(|m| m.session != id || !m.done);
+    }
+    h.emit("deleted", json!({"session": id}));
+    Ok(())
+}
+
+/// Simpan lampiran hasil paste/drop ke `%APPDATA%\Nimbus\attachments` dan kembalikan path lengkapnya.
+pub fn save_attachment(name: String, data_b64: String) -> Result<String, String> {
+    use base64::Engine as _;
+    let bytes = base64::engine::general_purpose::STANDARD.decode(data_b64.trim()).map_err(|e| format!("Lampiran tidak valid: {e}"))?;
+    if bytes.len() > 25 * 1024 * 1024 { return Err("Ukuran lampiran melebihi 25 MB".into()); }
+    let clean: String = name.chars().map(|c| if c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_') { c } else { '_' }).collect();
+    let fname = if clean.trim_matches('.').is_empty() { "lampiran.png".to_string() } else { clean };
+    let dir = notch_dir().join("attachments");
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let target = dir.join(format!("{}-{fname}", now_ms()));
+    fs::write(&target, &bytes).map_err(|e| format!("Gagal menyimpan lampiran: {e}"))?;
+    Ok(target.to_string_lossy().to_string())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn run(
+    cwd: String,
+    prompt: String,
+    resume: Option<String>,
+    model: Option<String>,
+    effort: Option<String>,
+    mode: Option<String>,
+    name: Option<String>,
+    fork: Option<bool>,
+    attachments: Option<Vec<String>>,
+) -> Result<String, String> {
     let h = hub()?.clone();
     let bin = claude_bin().ok_or("Claude Code tidak ditemukan. Pasang CLI (claude.exe) atau set NOTCH_CLAUDE_BIN.")?;
     let cwd = cwd.trim().to_string();
     if cwd.is_empty() || !Path::new(&cwd).is_dir() { return Err(format!("Folder tidak ditemukan: {cwd}")); }
-    if prompt.trim().is_empty() { return Err("Prompt kosong".into()); }
+    let files: Vec<String> = attachments.unwrap_or_default().into_iter()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty() && Path::new(s).exists())
+        .collect();
+    let body = prompt.trim().to_string();
+    if body.is_empty() && files.is_empty() { return Err("Prompt atau lampiran kosong".into()); }
+    let full_prompt = if files.is_empty() {
+        body.clone()
+    } else {
+        let list = files.iter().map(|f| format!("- {f}")).collect::<Vec<_>>().join("\n");
+        let text = if body.is_empty() { "Tolong periksa lampiran berikut." } else { body.as_str() };
+        format!("[Lampiran]\n{list}\n\n{text}")
+    };
     if let Some(r) = &resume {
         let st = h.st.lock().map_err(|e| e.to_string())?;
         if st.managed.iter().any(|m| &m.session == r && !m.done) { return Err("Sesi ini masih berjalan".into()); }
     }
     let mut cmd = Command::new(&bin);
     cmd.args(["-p", "--output-format", "stream-json", "--verbose"]);
-    if let Some(r) = resume.as_ref().filter(|s| !s.is_empty()) { cmd.args(["--resume", r]); }
+    if let Some(r) = resume.as_ref().filter(|s| !s.is_empty()) {
+        cmd.args(["--resume", r]);
+        if fork.unwrap_or(false) { cmd.arg("--fork-session"); }
+    } else if let Some(n) = name.as_ref().map(|s| s.trim()).filter(|s| !s.is_empty()) {
+        cmd.args(["--name", n]);
+    }
     if let Some(m) = model.as_ref().filter(|s| !s.is_empty() && *s != "default") { cmd.args(["--model", m]); }
+    if let Some(ef) = effort.as_ref().filter(|s| !s.is_empty() && *s != "default") { cmd.args(["--effort", ef]); }
     if let Some(m) = mode.as_ref().filter(|s| !s.is_empty() && *s != "default") { cmd.args(["--permission-mode", m]); }
+    let cwd_canon = fs::canonicalize(&cwd).unwrap_or_else(|_| PathBuf::from(&cwd));
+    let mut extra_dirs: Vec<PathBuf> = Vec::new();
+    for f in &files {
+        if let Some(parent) = Path::new(f).parent() {
+            let p_canon = fs::canonicalize(parent).unwrap_or_else(|_| parent.to_path_buf());
+            if !p_canon.starts_with(&cwd_canon) && !extra_dirs.contains(&p_canon) {
+                extra_dirs.push(p_canon);
+            }
+        }
+    }
+    for d in &extra_dirs {
+        cmd.arg("--add-dir").arg(d);
+    }
     cmd.current_dir(&cwd).env("NOTCH_MANAGED", "1").stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
+    crate::agents::apply_provider_env(&mut cmd, "claude");
     crate::sys::hide_console(&mut cmd);
     let mut child = cmd.spawn().map_err(|e| format!("Gagal menjalankan Claude Code: {e}"))?;
     if let Some(mut si) = child.stdin.take() {
-        let _ = si.write_all(prompt.as_bytes());
+        let _ = si.write_all(full_prompt.as_bytes());
     }
     let run_id = format!("run-{}", now_ms());
     {
         let mut st = h.st.lock().map_err(|e| e.to_string())?;
         st.managed.push(Managed {
-            run_id: run_id.clone(), pid: child.id(), session: resume.clone().unwrap_or_default(), cwd: cwd.clone(),
-            prompt: prompt.clone(), started: now_ms(), ..Default::default()
+            run_id: run_id.clone(), pid: child.id(),
+            session: if fork.unwrap_or(false) { String::new() } else { resume.clone().unwrap_or_default() },
+            cwd: cwd.clone(),
+            prompt: full_prompt.clone(), started: now_ms(), ..Default::default()
         });
         if st.managed.len() > 30 { st.managed.remove(0); }
     }

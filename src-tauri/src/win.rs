@@ -72,6 +72,151 @@ extern "system" {
     fn GetExtendedTcpTable(t: *mut c_void, size: *mut u32, order: i32, af: u32, class: u32, reserved: u32) -> u32;
 }
 
+#[repr(C)]
+struct OpenFileNameW {
+    l_struct_size: u32,
+    hwnd_owner: H,
+    h_instance: H,
+    lpstr_filter: *const u16,
+    lpstr_custom_filter: *mut u16,
+    n_max_cust_filter: u32,
+    n_filter_index: u32,
+    lpstr_file: *mut u16,
+    n_max_file: u32,
+    lpstr_file_title: *mut u16,
+    n_max_file_title: u32,
+    lpstr_initial_dir: *const u16,
+    lpstr_title: *const u16,
+    flags: u32,
+    n_file_offset: u16,
+    n_file_extension: u16,
+    lpstr_def_ext: *const u16,
+    l_cust_data: isize,
+    lpfn_hook: *const c_void,
+    lp_template_name: *const u16,
+    pv_reserved: *mut c_void,
+    dw_reserved: u32,
+    flags_ex: u32,
+}
+
+#[repr(C)]
+struct BrowseInfoW {
+    hwnd_owner: H,
+    pidl_root: *const c_void,
+    psz_display_name: *mut u16,
+    lpsz_title: *const u16,
+    ul_flags: u32,
+    lpfn: *const c_void,
+    l_param: isize,
+    i_image: i32,
+}
+
+#[link(name = "comdlg32")]
+extern "system" {
+    fn GetOpenFileNameW(ofn: *mut OpenFileNameW) -> i32;
+}
+
+#[link(name = "shell32")]
+extern "system" {
+    fn SHBrowseForFolderW(bi: *mut BrowseInfoW) -> *mut c_void;
+    fn SHGetPathFromIDListW(pidl: *const c_void, path: *mut u16) -> i32;
+}
+
+#[link(name = "ole32")]
+extern "system" {
+    fn CoInitializeEx(reserved: *mut c_void, coinit: u32) -> i32;
+    fn CoUninitialize();
+    fn CoTaskMemFree(pv: *mut c_void);
+}
+
+fn wide_z(s: &str) -> Vec<u16> {
+    s.encode_utf16().chain(std::iter::once(0)).collect()
+}
+
+/// Dialog pilih file native Windows (bisa multi-select).
+pub fn pick_files(owner_hwnd: isize) -> Vec<String> {
+    let filter: Vec<u16> = "Semua file (*.*)\0*.*\0Gambar & Dokumen\0*.png;*.jpg;*.jpeg;*.webp;*.gif;*.pdf;*.txt;*.md;*.json;*.rs;*.js;*.ts;*.py\0\0"
+        .encode_utf16()
+        .collect();
+    let title = wide_z("Pilih lampiran");
+    let mut buf = vec![0u16; 32768];
+    let mut ofn = OpenFileNameW {
+        l_struct_size: std::mem::size_of::<OpenFileNameW>() as u32,
+        hwnd_owner: owner_hwnd as H,
+        h_instance: std::ptr::null_mut(),
+        lpstr_filter: filter.as_ptr(),
+        lpstr_custom_filter: std::ptr::null_mut(),
+        n_max_cust_filter: 0,
+        n_filter_index: 1,
+        lpstr_file: buf.as_mut_ptr(),
+        n_max_file: buf.len() as u32,
+        lpstr_file_title: std::ptr::null_mut(),
+        n_max_file_title: 0,
+        lpstr_initial_dir: std::ptr::null(),
+        lpstr_title: title.as_ptr(),
+        flags: 0x0008_0000 | 0x0000_0200 | 0x0000_1000 | 0x0000_0800 | 0x0000_0008,
+        n_file_offset: 0,
+        n_file_extension: 0,
+        lpstr_def_ext: std::ptr::null(),
+        l_cust_data: 0,
+        lpfn_hook: std::ptr::null(),
+        lp_template_name: std::ptr::null(),
+        pv_reserved: std::ptr::null_mut(),
+        dw_reserved: 0,
+        flags_ex: 0,
+    };
+    let ok = unsafe { GetOpenFileNameW(&mut ofn) != 0 };
+    if !ok { return Vec::new(); }
+
+    let mut parts = Vec::new();
+    let mut i = 0;
+    while i < buf.len() {
+        let end = buf[i..].iter().position(|&c| c == 0).unwrap_or(0);
+        if end == 0 { break; }
+        parts.push(String::from_utf16_lossy(&buf[i..i + end]));
+        i += end + 1;
+    }
+    match parts.len() {
+        0 => Vec::new(),
+        1 => parts,
+        _ => {
+            let dir = &parts[0];
+            parts[1..].iter().map(|f| std::path::Path::new(dir).join(f).to_string_lossy().to_string()).collect()
+        }
+    }
+}
+
+/// Dialog pilih folder native Windows.
+pub fn pick_folder(owner_hwnd: isize, title_str: &str) -> Option<String> {
+    let title = wide_z(title_str);
+    let mut display = [0u16; 260];
+    let mut path_buf = [0u16; 1024];
+    unsafe {
+        let hr = CoInitializeEx(std::ptr::null_mut(), 0x2); // COINIT_APARTMENTTHREADED
+        let mut bi = BrowseInfoW {
+            hwnd_owner: owner_hwnd as H,
+            pidl_root: std::ptr::null(),
+            psz_display_name: display.as_mut_ptr(),
+            lpsz_title: title.as_ptr(),
+            ul_flags: 0x0001 | 0x0040 | 0x0010, // BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE | BIF_EDITBOX
+            lpfn: std::ptr::null(),
+            l_param: 0,
+            i_image: 0,
+        };
+        let pidl = SHBrowseForFolderW(&mut bi);
+        let res = if !pidl.is_null() {
+            let ok = SHGetPathFromIDListW(pidl, path_buf.as_mut_ptr()) != 0;
+            CoTaskMemFree(pidl);
+            if ok {
+                let len = path_buf.iter().position(|&c| c == 0).unwrap_or(path_buf.len());
+                Some(String::from_utf16_lossy(&path_buf[..len]))
+            } else { None }
+        } else { None };
+        if hr >= 0 { CoUninitialize(); }
+        res
+    }
+}
+
 // ---------- input ----------
 pub fn cursor() -> Point { let mut p = Point::default(); unsafe { GetCursorPos(&mut p) }; p }
 pub fn key_down(vk: i32) -> bool { unsafe { (GetAsyncKeyState(vk) as u16 & 0x8000) != 0 } }

@@ -1,17 +1,14 @@
 // Media: Now Playing dari Windows SMTC (Spotify, browser, dll) tanpa login.
 import { $, S, inv, icon, mmss, on, listen, T } from "./core.js";
 
-let md = null, pos = 0, at = 0;
+let md = null, pos = 0, at = 0, shownCover = "";
 const B = document.body;
 
 async function poll() {
-  const wasPlaying = md?.playing;
   try { md = await inv("media"); } catch { md = null; }
   pos = md?.pos || 0;
   at = performance.now();
   draw();
-  // Mulai spectrum capture saat musik play (di tab mana saja)
-  if (!wasPlaying && md?.playing) ensureSpecCapture();
 }
 
 function draw() {
@@ -20,8 +17,12 @@ function draw() {
   $("#mPlay").innerHTML = icon(md?.playing ? "pause" : "play");
   B.classList.toggle("playing", !!md?.playing);
   const art = $("#mArt");
-  if (md?.cover) { art.style.backgroundImage = `url("${md.cover}")`; art.classList.add("cover"); }
-  else { art.style.backgroundImage = ""; art.classList.remove("cover"); }
+  const cover = md?.cover || "";
+  if (cover !== shownCover) {
+    shownCover = cover;
+    art.style.backgroundImage = cover ? `url("${cover}")` : "";
+    art.classList.toggle("cover", !!cover);
+  }
   const artTxt = art.querySelector(".art-ov span");
   if (artTxt) artTxt.textContent = md?.artist || "";
   tick();
@@ -92,51 +93,65 @@ function barColor(t, alpha) {
 
 // ---- Spectrum utama ----
 function drawSpec() {
-  if (!sCtx || !sW || !sH) { anim = null; return; }
   anim = requestAnimationFrame(drawSpec);
+  resizeSpec();
+  if (!sCtx) return;
   sCtx.clearRect(0, 0, sW, sH);
 
-  if (liveBars) {
+  if (!T) {
+    simStep();
+  } else {
+    // Di aplikasi: murni data WASAPI. Senyap/belum ada data → bar turun ke baseline.
     for (let i = 0; i < N; i++) {
-      const v = liveBars[i] ?? 0;
+      const v = liveBars ? liveBars[i] ?? 0 : 0;
       bars[i] += (v - bars[i]) * (v > bars[i] ? 0.65 : 0.12);
     }
-  } else {
-    simStep();
   }
 
-  const dpr  = devicePixelRatio || 1;
-  const gap  = Math.max(1, Math.round(1.5 * dpr));
-  const bw   = (sW - gap * (N - 1)) / N;
-  // Baseline di 68% dari atas — lebih banyak ruang bar utama, sedikit untuk refleksi
-  const baseY = Math.round(sH * 0.68);
+  const dpr   = devicePixelRatio || 1;
+  const gap   = Math.max(2, Math.round(3 * dpr));
+  const bw    = (sW - gap * (N - 1)) / N;
+  const baseY = sH - 2 * dpr;
+  const maxH  = baseY * 0.9;
 
   for (let i = 0; i < N; i++) {
     const v = bars[i];
-    if (v < 0.004) continue;
-    const h  = Math.max(2 * dpr, v * baseY * 0.96);
-    const x  = i * (bw + gap);
+    const x = i * (bw + gap);
+    if (v < 0.004) {
+      sCtx.shadowBlur = 0;
+      sCtx.fillStyle = "rgba(220,222,228,0.12)";
+      const dh = 1.5 * dpr;
+      sCtx.beginPath();
+      if (sCtx.roundRect) {
+        sCtx.roundRect(x, baseY - dh, bw, dh, dh / 2);
+      } else {
+        sCtx.rect(x, baseY - dh, bw, dh);
+      }
+      sCtx.fill();
+      continue;
+    }
+    const h  = Math.max(2.5 * dpr, v * maxH);
     const ty = baseY - h;
     const t  = i / (N - 1);
     const { r, g, b } = barColor(t, 1);
-    const alpha = 0.55 + v * 0.45;
+    const alpha = 0.48 + v * 0.47;
 
-    // Gradient vertikal — lebih terang di ujung atas
+    // Gradient vertikal menyatu ke dasar notch yang gelap
     const grad = sCtx.createLinearGradient(0, ty, 0, baseY);
     grad.addColorStop(0, `rgba(${r},${g},${b},${alpha.toFixed(2)})`);
-    grad.addColorStop(1, `rgba(${r},${g},${b},${(alpha * 0.55).toFixed(2)})`);
+    grad.addColorStop(0.65, `rgba(${r},${g},${b},${(alpha * 0.35).toFixed(2)})`);
+    grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
     sCtx.fillStyle = grad;
 
-    // Glow putih lembut
+    // Glow lembut di puncak bar aktif
     if (v > 0.08) {
-      sCtx.shadowColor = `rgba(220,222,228,0.4)`;
-      sCtx.shadowBlur  = Math.min(8, v * 10) * dpr;
+      sCtx.shadowColor = `rgba(225,227,232,0.32)`;
+      sCtx.shadowBlur  = Math.min(8, v * 9) * dpr;
     } else {
       sCtx.shadowBlur = 0;
     }
 
-    // Bar dengan sudut atas membulat
-    const cr = Math.min(bw / 2, 2.5 * dpr);
+    const cr = Math.min(bw / 2, 3 * dpr);
     sCtx.beginPath();
     if (sCtx.roundRect) {
       sCtx.roundRect(x, ty, bw, h, [cr, cr, 0, 0]);
@@ -145,23 +160,7 @@ function drawSpec() {
     }
     sCtx.fill();
   }
-
-  // Refleksi di bawah baseline
   sCtx.shadowBlur = 0;
-  for (let i = 0; i < N; i++) {
-    const v = bars[i] * 0.28;
-    if (v < 0.004) continue;
-    const h  = Math.max(1, v * baseY * 0.96);
-    const x  = i * (bw + gap);
-    const t  = i / (N - 1);
-    const { r, g, b } = barColor(t, 1);
-
-    const grad = sCtx.createLinearGradient(0, baseY, 0, baseY + h);
-    grad.addColorStop(0, `rgba(${r},${g},${b},0.22)`);
-    grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
-    sCtx.fillStyle = grad;
-    sCtx.fillRect(x, baseY, bw, h);
-  }
 }
 
 function resizeSpec() {
@@ -170,14 +169,15 @@ function resizeSpec() {
   const dpr = devicePixelRatio || 1;
   const nw  = Math.round(c.offsetWidth * dpr);
   const nh  = Math.round(c.offsetHeight * dpr);
-  if (!nw || !nh) return;
+  if (!nw || !nh) { sCtx = null; return; }
+  if (sCtx && nw === sW && nh === sH) return;
   sW = nw; sH = nh;
   c.width = sW; c.height = sH;
   sCtx = c.getContext("2d");
 }
 
 function startSpec() {
-  setTimeout(() => { resizeSpec(); if (!anim) drawSpec(); }, 60);
+  if (!anim) drawSpec();
   ensureSpecCapture();
 }
 
@@ -271,16 +271,17 @@ function drivePulse() {
 let captureStarted = false;
 async function ensureSpecCapture() {
   if (!T) return;
-  if (!captureStarted) {
-    captureStarted = true;
-    inv("spectrum_start").catch(() => {});
-    if (!unlisten) {
-      unlisten = await listen("spectrum", (e) => {
-        liveBars = e.payload;
-        // Aktifkan mini spec saat data real pertama masuk
-        if (!miniAnim) startMini();
-      }).catch(() => null);
-    }
+  if (captureStarted) return;
+  captureStarted = true;
+  try {
+    unlisten = await listen("spectrum", (e) => {
+      liveBars = e.payload;
+      if (!miniAnim) startMini();
+    });
+    await inv("spectrum_start");
+  } catch (err) {
+    console.error("spectrum", err);
+    captureStarted = false;
   }
 }
 
@@ -289,24 +290,21 @@ export function initMedia() {
 
   // Event handler tab/open/close jalan di browser maupun Tauri
   on("tab", (t) => {
-    if (t === "media") { if (T) poll(); startSpec(); }
+    if (t === "media") { if (T) poll(); if (S.open) startSpec(); }
     else stopSpec();
   });
   on("open", () => {
     if (S.tab === "media") startSpec();
-    if (T && md?.playing) ensureSpecCapture();
   });
   on("close", () => {
     stopSpec();
     // Mini spec tetap jalan saat notch nutup kalau musik masih main
-    if (!md?.playing) {
-      stopMini();
-      liveBars = null;
-    }
+    if (!md?.playing) stopMini();
   });
 
-  // Animasi canvas + pulse selalu mulai (simulasi berjalan di browser tanpa Tauri)
-  startSpec();
+  if (S.open && S.tab === "media") startSpec();
+  // Capture idle hampir gratis (Rust diam saat senyap), jadi nyalakan sejak awal
+  ensureSpecCapture();
   drivePulse();
 
   if (!T) return;
@@ -314,6 +312,4 @@ export function initMedia() {
   poll();
   setInterval(poll, 2000);
   setInterval(() => { if (S.open && S.tab === "media" && md?.playing) tick(); }, 500);
-  // Mulai capture langsung kalau musik sudah main saat init
-  if (md?.playing) ensureSpecCapture();
 }

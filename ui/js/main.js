@@ -59,8 +59,8 @@ document.addEventListener("mousedown", (e) => { if (!T && S.open && !shell.conta
 
 if (T) {
   listen("hover", (e) => { S.hover = !!e.payload; if (!S.open) layout(); });
-  listen("click-outside", () => S.open && setOpen(false));
-  listen("window-blur", () => { if (S.open && !S.hover) setOpen(false); });
+  listen("click-outside", () => S.open && !S.modal && setOpen(false));
+  listen("window-blur", () => { if (S.open && !S.hover && !S.modal) setOpen(false); });
   listen("browser-under-notch", (e) => { S.browser = !!e.payload; layout(); });
   listen("global-hotkey", () => {
     if (S.open) setOpen(false);

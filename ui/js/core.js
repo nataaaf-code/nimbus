@@ -44,6 +44,7 @@ export const S = {
   open: false,
   tab: ld("notch.tab", "agents"),
   hover: false,
+  modal: false,
   browser: false,
   toast: null, // {text, kind, until}
   live: null, // {dot, proj, act, meta}
