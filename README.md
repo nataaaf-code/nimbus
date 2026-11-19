@@ -1,5 +1,7 @@
 # Nimbus
 
+[![CI](https://github.com/nataaaf-code/nimbus/actions/workflows/ci.yml/badge.svg)](https://github.com/nataaaf-code/nimbus/actions/workflows/ci.yml)
+
 A floating notch for Windows that keeps your AI coding agents, music, and system controls one glance away. Built with Tauri 2 (Rust) and vanilla ES modules — no framework, no bundler.
 
 > Windows doesn't have a physical notch, so we made one.
