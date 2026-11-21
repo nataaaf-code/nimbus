@@ -1,6 +1,6 @@
 # Domain: ui
 
-Perubahan dan perbaikan antarmuka pengguna pada Notch (`ui/index.html`).
+Perubahan dan perbaikan antarmuka pengguna pada Nimbus (`ui/index.html`, `ui/js/*`, `ui/css/*`).
 
 ## Catatan Perubahan
 - [2026-11-05: Usage Hari Ini + Kuota/Sisa Harian](2026-11-05-kuota-harian-usage-opencode.md)

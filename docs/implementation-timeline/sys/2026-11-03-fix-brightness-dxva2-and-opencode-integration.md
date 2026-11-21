@@ -28,4 +28,4 @@
 
 - `cargo test -- --nocapture` menjalankan `sys::tests::test_brightness_and_volume` dan berhasil membaca volume serta kecerahan monitor eksternal (`Brightness: Some(34)`).
 - `opencode run` berhasil dijalankan dan merespons prompt interaktif secara headless.
-- Aplikasi `windows-notch.exe` terverifikasi aktif dan berjalan.
+- Aplikasi Nimbus (sebelumnya `windows-notch.exe`) terverifikasi aktif dan berjalan.

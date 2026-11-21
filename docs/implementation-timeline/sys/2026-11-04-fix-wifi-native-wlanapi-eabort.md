@@ -35,4 +35,4 @@
   - **Sebelum**: Gagal setelah ~20 detik dengan panic `Operation aborted (0x80004004)`.
   - **Sesudah**: Sukses dalam **0.19 detik** mendeteksi seluruh jaringan Wi-Fi di sekitar (12 SSID terdeteksi termasuk jaringan yang sedang terkoneksi aktif).
 - Pengujian regresi penuh: 6 unit tests Rust berhasil 100% tanpa error.
-- Binary rilis `windows-notch.exe` berhasil dikompilasi dan berjalan aktif.
+- Binary rilis Nimbus (`nimbus.exe`, sebelumnya `windows-notch.exe`) berhasil dikompilasi dan berjalan aktif.

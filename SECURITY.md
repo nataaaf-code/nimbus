@@ -19,7 +19,7 @@ Nimbus has no backend and no telemetry. Everything below happens locally.
 | Data | Where | Notes |
 |---|---|---|
 | Provider API keys | `%APPDATA%\Nimbus\provider_keys.json` | **Plain JSON** — readable by any process running as your user |
-| Google OAuth client + tokens | `%APPDATA%\Nimbus\config.json`, OAuth token file | Scoped to the Calendar scope you approve |
+| Google Calendar URL | `%APPDATA%\Nimbus\config.json` | Secret iCal address (`ics_url`) for fetching events |
 | Claude Code transcripts | `~/.claude/projects/` (read) | Sessions, prompts, tool calls, diffs |
 | Permission hook | `127.0.0.1` loopback only | Registered in `~/.claude/settings.json`; lets the notch allow/deny tool calls |
 | Audio | WASAPI loopback | Captured in memory for the visualizer; not written to disk |

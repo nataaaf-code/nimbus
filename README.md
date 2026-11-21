@@ -23,10 +23,10 @@ A floating notch for Windows that keeps your AI coding agents, music, and system
 
 ### Everything else
 
-- **Music** — now playing from any Windows media source (Spotify, YouTube Music, browsers) via SMTC, no login needed
+- **Music**: search and play YouTube Music directly in the notch (InnerTube, no external app or login), with synced lyrics, album view, and queue; falls back to SMTC for other players
 - **Audio spectrum** — real WASAPI loopback capture, Goertzel FFT, 52 bands at ~60 fps
 - **System controls** — volume, brightness, Wi-Fi, and Bluetooth in one click
-- **Google Calendar** — today's events at a glance (optional, bring your own OAuth client)
+- **Google Calendar** — today's events at a glance via your calendar's secret iCal URL (no OAuth setup needed)
 - **Global hotkey** — `Ctrl+Alt+Space` toggles the bar from anywhere
 - **Line mode** — collapses to a 5 px pulsing glow when a browser window sits under the notch
 
@@ -41,6 +41,8 @@ The build is not code-signed, so SmartScreen will warn you: **More info → Run 
 You need Windows 10/11, [Rust](https://rustup.rs/) with the MSVC toolchain, [Visual Studio Build Tools](https://visualstudio.microsoft.com/downloads/) with the C++ workload, Node.js 18+, and WebView2.
 
 ```bash
+git clone https://github.com/nataaaf-code/nimbus.git
+cd nimbus
 npm install
 npm run dev     # development mode with hot-reload
 npm run build   # NSIS installer in src-tauri/target/release/bundle
@@ -68,14 +70,10 @@ Session transcripts are read from `~/.claude/projects/`, so the hub works with z
 
 ## Google Calendar setup (optional)
 
-1. [Google Cloud Console](https://console.cloud.google.com/) → create a project → enable **Google Calendar API**
-2. OAuth consent screen → External → Testing → add your Google account as a test user
-3. Credentials → Create → OAuth client ID → type **Desktop app**
-4. Create `%APPDATA%\Nimbus\config.json`:
-   ```json
-   { "google_client_id": "...apps.googleusercontent.com", "google_client_secret": "..." }
-   ```
-5. Open the Today tab → Connect Google → browser opens → done
+1. Open [Google Calendar](https://calendar.google.com/) in your browser
+2. Click the gear icon → **Settings** → select your calendar in the left sidebar
+3. Scroll to **Integrate calendar** → copy **Secret address in iCal format**
+4. Open the **Hari ini** tab in Nimbus and paste the URL (stored in `%APPDATA%\Nimbus\config.json` as `{ "ics_url": "..." }`)
 
 ## Project structure
 
@@ -97,7 +95,7 @@ src-tauri/src/
   spectrum.rs         WASAPI loopback → Goertzel FFT → Tauri events
   sys.rs              system controls (volume, brightness, radios)
   win.rs              Windows-specific helpers (hit-test, browser detection)
-  google.rs           Google Calendar OAuth + API
+  google.rs           Google Calendar iCal feed parser
 ```
 
 Adding a provider touches `PROVIDER_DEFS` in `agents.rs` plus its lookup and auth branches; UI labels live in `PROV_LBL` in `ui/js/agents.js`. [CONTRIBUTING.md](CONTRIBUTING.md) has the details.
@@ -109,8 +107,8 @@ Nimbus runs on your machine and has no backend. It reads local session files and
 | Path | Contents |
 |---|---|
 | `%APPDATA%\Nimbus\provider_keys.json` | Provider API keys you enter in the app |
-| `%APPDATA%\Nimbus\config.json` | Google OAuth client ID/secret |
-| `%APPDATA%\Nimbus\*.json` | Session titles, calendar cache, OAuth tokens |
+| `%APPDATA%\Nimbus\config.json` | Google Calendar secret iCal URL (`ics_url`) |
+| `%APPDATA%\Nimbus\*.json` | Hook secret token, session titles, local app state |
 
 API keys are stored as plain JSON today, readable by anything running as your user. Prefer the CLI login flow when you can, and see [SECURITY.md](SECURITY.md) for the current status and the planned DPAPI migration.
 

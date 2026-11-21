@@ -22,5 +22,5 @@ Sebelumnya, output dari `opencode run` menyisipkan ANSI escape sequence seperti 
    - Memisahkan status sementara (di chip `#st`, judul `#tk`, dan bar `#ab`) dari histori chat (`#lg`), sehingga log tool dan build progress tidak menumpuk di area obrolan.
 
 ## Verifikasi
-- Unit test `cargo test --bin windows-notch` berhasil (`test_clean_ansi`, `test_brightness_and_volume`, `test_radios`).
+- Unit test `cargo test --bin nimbus` (sebelumnya `windows-notch`) berhasil (`test_clean_ansi`, `test_brightness_and_volume`, `test_radios`).
 - Format JSON dari `opencode` divalidasi tidak memancarkan ANSI escapes atau stderr build noise ke obrolan pengguna.

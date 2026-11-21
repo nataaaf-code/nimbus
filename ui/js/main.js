@@ -2,6 +2,7 @@
 import { $, $$, S, T, inv, listen, on, emit, layout, setOpen, setTab } from "./core.js";
 import { initAgents } from "./agents.js";
 import { initMedia } from "./media.js";
+import { initSholat } from "./sholat.js";
 import { initSystem } from "./system.js";
 import { initToday } from "./today.js";
 
@@ -73,6 +74,7 @@ if (T) {
 setTab(S.tab);
 initAgents();
 initMedia();
+initSholat();
 initSystem();
 initToday();
 renderPill();

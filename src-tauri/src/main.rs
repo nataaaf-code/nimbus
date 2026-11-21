@@ -2,8 +2,11 @@
 mod agents;
 mod cc;
 mod google;
+mod sholat;
+mod stream;
 mod sys;
 mod win;
+mod ytm;
 
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -47,6 +50,29 @@ async fn blk<T: Send + 'static>(f: impl FnOnce() -> Result<T, String> + Send + '
 }
 #[tauri::command] async fn media() -> Result<Option<sys::Media>, String> { blk(sys::media).await }
 #[tauri::command] async fn media_ctl(op: String) -> Result<(), String> { blk(move || sys::media_ctl(&op)).await }
+#[tauri::command] async fn ytm_state() -> Result<ytm::MediaState, String> { blk(ytm::state).await }
+#[tauri::command] async fn ytm_stream(video_id: String) -> Result<ytm::StreamInfo, String> { blk(move || ytm::stream(video_id)).await }
+#[tauri::command] async fn ytm_lyrics(
+    title: String,
+    artist: String,
+    album: Option<String>,
+    duration: Option<f64>,
+    video_id: Option<String>,
+    force: Option<bool>,
+) -> Result<ytm::LyricsResult, String> {
+    blk(move || ytm::lyrics(title, artist, album, duration, video_id, force.unwrap_or(false))).await
+}
+#[tauri::command] async fn ytm_track_album(
+    video_id: Option<String>,
+    title: String,
+    artist: String,
+    album: Option<String>,
+) -> Result<ytm::AlbumDetail, String> {
+    blk(move || ytm::track_album(video_id, title, artist, album)).await
+}
+#[tauri::command] async fn ytm_album(browse_id: String) -> Result<ytm::AlbumDetail, String> { blk(move || ytm::album(browse_id)).await }
+#[tauri::command] async fn ytm_search(query: String, filter: Option<String>) -> Result<ytm::SearchResult, String> { blk(move || ytm::search(query, filter)).await }
+#[tauri::command] async fn ytm_open_url(url: String) -> Result<(), String> { blk(move || ytm::open_url(url)).await }
 #[tauri::command] async fn wifi_list() -> Result<Vec<sys::Net>, String> { blk(sys::wifi_list).await }
 #[tauri::command] async fn wifi_connect(ssid: String, password: Option<String>) -> Result<(), String> { blk(move || sys::wifi_connect(&ssid, password)).await }
 #[tauri::command] async fn bt_list() -> Result<Vec<sys::BtDevice>, String> { blk(sys::bt_list).await }
@@ -70,6 +96,27 @@ async fn blk<T: Send + 'static>(f: impl FnOnce() -> Result<T, String> + Send + '
 #[tauri::command] async fn ical_clear() -> Result<(), String> { blk(google::clear_url).await }
 #[tauri::command] async fn ical_events(min: String, max: String) -> Result<Vec<google::Ev>, String> { blk(move || google::events(&min, &max)).await }
 #[tauri::command] async fn get_weather() -> Result<weather::Weather, String> { blk(weather::get).await }
+#[tauri::command] async fn sholat_search_cities(query: String) -> Result<Vec<sholat::CityItem>, String> { blk(move || sholat::search_cities(query)).await }
+#[tauri::command] async fn sholat_detect_city() -> Result<sholat::DetectedCity, String> { blk(sholat::detect_city).await }
+#[tauri::command] async fn sholat_month(
+    city_id: String,
+    year: i32,
+    month: u32,
+    lat: Option<f64>,
+    lon: Option<f64>,
+    force: Option<bool>,
+) -> Result<sholat::MonthSchedule, String> {
+    blk(move || sholat::month_schedule(city_id, year, month, lat, lon, force.unwrap_or(false))).await
+}
+#[tauri::command] async fn sholat_sync_month(
+    city_id: String,
+    year: i32,
+    month: u32,
+    lat: Option<f64>,
+    lon: Option<f64>,
+) -> Result<Option<sholat::MonthSchedule>, String> {
+    blk(move || sholat::sync_month(city_id, year, month, lat, lon)).await
+}
 
 // ---- Claude Code
 #[tauri::command] async fn cc_snapshot(since: i64) -> Result<serde_json::Value, String> { blk(move || cc::snapshot(since)).await }
@@ -152,8 +199,14 @@ async fn set_autostart(enabled: bool) -> Result<(), String> {
     blk(move || {
         let mut c = Command::new("reg");
         if enabled {
-            let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-            c.args(["add", RUN_KEY, "/v", "Nimbus", "/t", "REG_SZ", "/d", &format!("\"{}\"", exe.to_string_lossy()), "/f"]);
+            let cmd = match std::env::var("NIMBUS_AUTOSTART_CMD") {
+                Ok(v) if !v.trim().is_empty() => v.trim().to_string(),
+                _ => {
+                    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+                    format!("\"{}\"", exe.to_string_lossy())
+                }
+            };
+            c.args(["add", RUN_KEY, "/v", "Nimbus", "/t", "REG_SZ", "/d", &cmd, "/f"]);
         } else {
             c.args(["delete", RUN_KEY, "/v", "Nimbus", "/f"]);
         }
@@ -271,9 +324,12 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             set_hit, focus_window, set_volume, set_brightness,
-            media, media_ctl, wifi_list, wifi_connect, bt_list, bt_connect, open_settings,
+            media, media_ctl,
+            ytm_state, ytm_stream, ytm_lyrics, ytm_track_album, ytm_album, ytm_search, ytm_open_url,
+            wifi_list, wifi_connect, bt_list, bt_connect, open_settings,
             radios, set_radio, levels, system_stats,
             ical_status, ical_save_url, ical_clear, ical_events, get_weather,
+            sholat_search_cities, sholat_detect_city, sholat_month, sholat_sync_month,
             get_autostart, set_autostart,
             cc_snapshot, cc_session, cc_decide, cc_run, cc_rename, cc_delete, cc_save_attachment, cc_pick_files, cc_pick_folder, cc_kill, cc_open, cc_hooks, cc_history, cc_clear_allow,
             ag_snapshot, ag_session, ag_run, ag_rename, ag_delete, ag_kill, ag_open, ag_providers, ag_refresh_models, ag_install_provider, ag_login_oauth, ag_save_key, ag_logout_provider,

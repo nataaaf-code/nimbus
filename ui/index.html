@@ -55,10 +55,11 @@
             <header class="topbar">
               <nav class="tabs" id="tabs">
                 <span class="tab-ind" id="tabInd"></span>
-                <button data-tab="agents"><svg class="i"><use href="#i-spark" /></svg>Agen<span class="tbadge" id="tbAgents"></span></button>
-                <button data-tab="media"><svg class="i"><use href="#i-music" /></svg>Media</button>
-                <button data-tab="system"><svg class="i"><use href="#i-sliders" /></svg>Sistem</button>
-                <button data-tab="today"><svg class="i"><use href="#i-cal" /></svg>Hari ini</button>
+                <button data-tab="agents"><svg class="i" aria-hidden="true"><use href="#i-term" /></svg>Agen<span class="tbadge" id="tbAgents"></span></button>
+                <button data-tab="media"><svg class="i" aria-hidden="true"><use href="#i-music" /></svg>Media</button>
+                <button data-tab="sholat"><svg class="i" aria-hidden="true"><use href="#i-moon" /></svg>Sholat</button>
+                <button data-tab="system"><svg class="i" aria-hidden="true"><use href="#i-sliders" /></svg>Sistem</button>
+                <button data-tab="today"><svg class="i" aria-hidden="true"><use href="#i-cal" /></svg>Hari ini</button>
               </nav>
               <div class="clock"><b id="clkT"></b><span id="clkD"></span></div>
             </header>
@@ -71,7 +72,7 @@
                   <div class="ph-row">
                     <div class="ph-title">
                       <b>AI Agents</b>
-                      <span class="sub" id="agToday">—</span>
+                      <span class="sub" id="agToday">-</span>
                     </div>
                     <span class="grow"></span>
                     <button class="btn sm" id="agProvidersBtn" title="Kelola provider, install CLI &amp; login"><svg class="i"><use href="#i-bot" /></svg><span id="agProvCount">Providers</span></button>
@@ -263,21 +264,257 @@
 
               <!-- ================= MEDIA ================= -->
               <section class="view" data-view="media">
-                <div class="media">
-                  <div class="art" id="mArt"><svg class="i"><use href="#i-music" /></svg><div class="art-ov" id="mArtOv"><span></span></div></div>
-                  <div class="m-info">
-                    <div class="m-t"><b id="mTitle">Tidak ada media</b><span id="mArtist">Putar musik di Spotify atau pemutar lain</span></div>
-                    <div class="m-prog"><div class="bar"><i id="mBar"></i></div><div class="m-time"><span id="mPos">0:00</span><span id="mDur">0:00</span></div></div>
-                    <div class="m-ctl">
-                      <button class="ibtn lg" id="mPrev" title="Sebelumnya"><svg class="i"><use href="#i-prev" /></svg></button>
-                      <button class="ibtn xl pri" id="mPlay" title="Putar/Jeda"><svg class="i"><use href="#i-play" /></svg></button>
-                      <button class="ibtn lg" id="mNext" title="Berikutnya"><svg class="i"><use href="#i-next" /></svg></button>
-                      <span class="grow"></span>
-                      <div class="eq big"><i></i><i></i><i></i><i></i></div>
+                <div class="m-bg" id="mBg" aria-hidden="true"></div>
+                <audio id="mAudio" preload="metadata" hidden></audio>
+                <div class="m-head">
+                  <div class="seg m-tabs" id="mTabs">
+                    <i class="m-tab-ind" id="mTabInd" aria-hidden="true"></i>
+                    <button data-mv="player" class="on">Pemutar</button>
+                    <button data-mv="lyrics">Lirik</button>
+                    <button data-mv="album">Album</button>
+                    <button data-mv="queue">Antrean</button>
+                    <button data-mv="search">Cari</button>
+                  </div>
+                  <span class="grow"></span>
+                  <button class="ytm-pill" id="ytmPill" title="Status pemutar Nimbus">
+                    <span class="ytm-dot"></span>
+                    <span id="ytmPillTxt">Pemutar Nimbus</span>
+                  </button>
+                </div>
+
+                <!-- Sub-view 1: Pemutar Utama + Seamless Spectrum -->
+                <div class="m-pane on" data-mp="player">
+                  <div class="media">
+                    <button class="art" id="mArt" title="Lihat detail album">
+                      <svg class="i"><use href="#i-music" /></svg>
+                      <div class="art-ov" id="mArtOv"><span></span></div>
+                    </button>
+                    <div class="m-info">
+                      <div class="m-t">
+                        <b id="mTitle">Tidak ada media</b>
+                        <div class="m-subrow">
+                          <span id="mArtist">Putar musik di YouTube Music atau pemutar lain</span>
+                          <button class="m-alb-chip" id="mAlbumBtn" hidden title="Buka daftar lagu album">
+                            <svg class="i"><use href="#i-disc" /></svg>
+                            <span id="mAlbumTxt"></span>
+                          </button>
+                        </div>
+                      </div>
+                      <div class="m-prog">
+                        <div class="m-seek" id="mSeekTrack" role="slider" aria-label="Posisi lagu" tabindex="0">
+                          <div class="bar"><i id="mBar"></i></div>
+                          <span class="m-knob" id="mKnob"></span>
+                        </div>
+                        <div class="m-time"><span id="mPos">0:00</span><span id="mDur">0:00</span></div>
+                      </div>
+                      <div class="m-ctl">
+                        <button class="ibtn sm m-ytm-only" id="mShuffle" title="Acak (Shuffle)"><svg class="i"><use href="#i-shuffle" /></svg></button>
+                        <button class="ibtn lg" id="mPrev" title="Sebelumnya"><svg class="i"><use href="#i-prev" /></svg></button>
+                        <button class="ibtn xl pri" id="mPlay" title="Putar/Jeda"><svg class="i"><use href="#i-play" /></svg></button>
+                        <button class="ibtn lg" id="mNext" title="Berikutnya"><svg class="i"><use href="#i-next" /></svg></button>
+                        <button class="ibtn sm m-ytm-only" id="mRepeat" title="Ulangi (Repeat)"><svg class="i"><use href="#i-repeat" /></svg></button>
+                        <span class="grow"></span>
+                        <div class="m-vol m-ytm-only" id="mVolWrap" title="Volume pemutar">
+                          <button class="ibtn xs" id="mMute" title="Bisu / Suarakan"><svg class="i"><use href="#i-vol" /></svg></button>
+                          <input type="range" id="mVol" min="0" max="100" value="100" aria-label="Volume pemutar" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="spec-wrap" id="mSpecWrap">
+                    <div class="m-lyr-live" id="mLyrPreview" hidden aria-live="polite">
+                      <button class="m-lyr-nudge" id="mLyrSlow" title="Lirik kecepetan? Lambatkan 0.5 detik">−0.5s</button>
+                      <button class="m-lyr-hit" id="mLyrHit" title="Klik untuk buka lirik penuh · Scroll untuk atur timing">
+                        <span class="m-lyr-stage" id="mLyrStage"></span>
+                      </button>
+                      <button class="m-lyr-nudge" id="mLyrFast" title="Lirik telat? Cepatkan 0.5 detik">+0.5s</button>
+                    </div>
+                    <canvas id="mSpec"></canvas>
+                  </div>
+                </div>
+
+                <!-- Sub-view 2: Lirik Sinkron -->
+                <div class="m-pane" data-mp="lyrics">
+                  <div class="m-mini">
+                    <div class="m-mini-art" id="mLyrArt"></div>
+                    <div class="m-mini-t"><b id="mLyrTitle">—</b><span id="mLyrArtist">—</span></div>
+                    <span class="tag" id="mLyrSrc">Lirik</span>
+                    <button class="ibtn sm" id="mLyrPlay" title="Putar/Jeda"><svg class="i"><use href="#i-play" /></svg></button>
+                    <button class="ibtn sm" id="mLyrRefresh" title="Muat ulang lirik"><svg class="i"><use href="#i-reload" /></svg></button>
+                  </div>
+                  <div class="m-lyr-sync" id="mLyrSync" hidden>
+                    <span class="m-lyr-sync-lbl">Timing</span>
+                    <button class="m-sync-btn" data-d="-2" title="Lirik kecepetan? Lambatkan 2 detik">−2s</button>
+                    <button class="m-sync-btn" data-d="-0.5" title="Lambatkan lirik 0.5 detik">−0.5s</button>
+                    <button class="m-sync-btn" data-d="-0.2" title="Lambatkan lirik 0.2 detik">−0.2s</button>
+                    <button class="m-sync-val" id="mLyrOffVal" title="Klik untuk reset timing ke 0.0s">0.0s</button>
+                    <button class="m-sync-btn" data-d="0.2" title="Cepatkan lirik 0.2 detik">+0.2s</button>
+                    <button class="m-sync-btn" data-d="0.5" title="Cepatkan lirik 0.5 detik">+0.5s</button>
+                    <button class="m-sync-btn" data-d="2" title="Lirik telat? Cepatkan 2 detik">+2s</button>
+                  </div>
+                  <div class="scroll lyr-box" id="mLyrList"></div>
+                </div>
+
+                <!-- Sub-view 3: Album Explorer -->
+                <div class="m-pane" data-mp="album">
+                  <div class="alb-head" id="mAlbHead">
+                    <div class="alb-art" id="mAlbArt"><svg class="i"><use href="#i-disc" /></svg></div>
+                    <div class="alb-info">
+                      <b id="mAlbTitle">Album</b>
+                      <span class="sub" id="mAlbSub">Memuat informasi album…</span>
+                      <div class="alb-acts">
+                        <button class="btn pri sm" id="mAlbPlayAll"><svg class="i"><use href="#i-play" /></svg>Putar Album</button>
+                        <button class="btn sm" id="mAlbOpen"><svg class="i"><use href="#i-ext" /></svg>YT Music</button>
+                        <button class="btn sm ghost" id="mAlbFromNow" hidden>Album lagu ini</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="scroll m-tracks" id="mAlbTracks"></div>
+                </div>
+
+                <!-- Sub-view 4: Antrean (Queue) -->
+                <div class="m-pane" data-mp="queue">
+                  <div class="m-subbar">
+                    <b>Antrean Berikutnya</b>
+                    <span class="sub" id="mQueueMeta">0 lagu</span>
+                    <span class="grow"></span>
+                    <button class="btn sm ghost" id="mQueueClr" title="Kosongkan antrean">Bersihkan</button>
+                    <button class="ibtn sm" id="mQueueRef" title="Segarkan antrean"><svg class="i"><use href="#i-reload" /></svg></button>
+                  </div>
+                  <div class="scroll m-tracks" id="mQueueList"></div>
+                </div>
+
+                <!-- Sub-view 5: Cari di YouTube Music -->
+                <div class="m-pane" data-mp="search">
+                  <div class="m-search-row">
+                    <div class="ag-search">
+                      <svg class="i"><use href="#i-search" /></svg>
+                      <input id="mSearchIn" placeholder="Cari lagu, artis, atau album di YouTube Music…" autocomplete="off" />
+                      <button class="ibtn sm" id="mSearchClr" title="Bersihkan" hidden><svg class="i"><use href="#i-x" /></svg></button>
+                    </div>
+                    <div class="seg m-seg" id="mSearchFilter">
+                      <i class="m-tab-ind" id="mFilterInd" aria-hidden="true"></i>
+                      <button data-f="songs" class="on">Lagu</button>
+                      <button data-f="albums">Album</button>
+                    </div>
+                  </div>
+                  <div class="scroll m-tracks" id="mSearchRes"></div>
+                </div>
+
+                <!-- Sub-view 6: Status Pemutar Nimbus -->
+                <div class="m-pane" data-mp="setup">
+                  <div class="scroll form">
+                    <div class="ytm-card">
+                      <div class="ytm-card-h">
+                        <span class="ytm-badge"><svg class="i"><use href="#i-music" /></svg></span>
+                        <div>
+                          <b>Pemutar Nimbus</b>
+                          <span class="sub">Audio langsung dari YouTube Music lewat InnerTube · tanpa aplikasi tambahan</span>
+                        </div>
+                        <span class="pv-st ok" id="ytmStBadge">Aktif</span>
+                      </div>
+                      <div class="kv" id="ytmKv"></div>
+                      <p class="note">Nimbus mengambil stream audio, metadata, dan lirik sinkron bawaan langsung dari YouTube Music (dengan cadangan LRCLIB), lalu memutarnya di dalam aplikasi. Fitur berbasis akun (suka/tidak suka, library, dan riwayat) tidak tersedia karena Nimbus tidak menyimpan login.</p>
                     </div>
                   </div>
                 </div>
-                <div class="spec-wrap"><canvas id="mSpec"></canvas></div>
+              </section>
+
+              <!-- ================= SHOLAT ================= -->
+              <section class="view" data-view="sholat">
+                <div class="sh-head">
+                  <div class="seg m-tabs" id="shTabs">
+                    <i class="m-tab-ind" id="shTabInd" aria-hidden="true"></i>
+                    <button type="button" data-sv="today" class="on">Hari Ini</button>
+                    <button type="button" data-sv="month">Bulanan</button>
+                    <button type="button" data-sv="city">Kota &amp; Kiblat</button>
+                  </div>
+                  <span class="grow"></span>
+                  <button type="button" class="sh-loc-btn" id="shCityPill" title="Ganti kota resmi Kemenag RI">
+                    <svg class="i" aria-hidden="true"><use href="#i-pin" /></svg>
+                    <span id="shCityTxt">Kota Jakarta</span>
+                  </button>
+                  <button type="button" class="ibtn sm" id="shSkyPause" title="Jeda atau lanjutkan animasi langit" aria-label="Jeda animasi langit" aria-pressed="false">
+                    <svg class="i" aria-hidden="true"><use href="#i-pause" /></svg>
+                  </button>
+                  <button type="button" class="ibtn sm" id="shRefresh" title="Perbarui jadwal sholat" aria-label="Perbarui jadwal sholat">
+                    <svg class="i" aria-hidden="true"><use href="#i-reload" /></svg>
+                  </button>
+                </div>
+
+                <!-- Sub-view 1: Hari Ini + Animasi Matahari/Bulan + Baris Teks 8 Waktu -->
+                <div class="sh-pane on" data-sp="today">
+                  <div class="sh-hero">
+                    <canvas id="shSky" aria-hidden="true"></canvas>
+                    <div class="sh-hero-top">
+                      <div class="sh-dates">
+                        <b id="shHijri">Kalender Hijriah</b>
+                        <span id="shGreg">-</span>
+                      </div>
+                      <div class="sh-meta-txt">
+                        <span id="shMoonLbl"></span>
+                        <span id="shQiblaPill"></span>
+                      </div>
+                    </div>
+                    <span class="sh-preview-lbl" id="shPreviewLbl" hidden></span>
+                    <div class="sh-hero-bot">
+                      <div class="sh-next">
+                        <b id="shCountdown">--:--:--</b>
+                        <span id="shNextLbl">Memuat jadwal resmi Kemenag RI...</span>
+                      </div>
+                      <span class="sh-phase-txt" id="shPhase"></span>
+                    </div>
+                    <div class="sh-prog" aria-hidden="true"><i id="shProgBar"></i></div>
+                  </div>
+                  <div class="sh-row" id="shGrid"></div>
+                </div>
+
+                <!-- Sub-view 2: Kalender & Jadwal 1 Bulan Penuh -->
+                <div class="sh-pane" data-sp="month">
+                  <div class="sh-mbar">
+                    <button type="button" class="ibtn sm" id="shPrevM" title="Bulan sebelumnya" aria-label="Bulan sebelumnya"><svg class="i" aria-hidden="true"><use href="#i-back" /></svg></button>
+                    <div class="sh-mtitle">
+                      <b id="shMonthLbl">-</b>
+                      <span id="shMonthHijri">-</span>
+                    </div>
+                    <button type="button" class="ibtn sm" id="shNextM" title="Bulan berikutnya" aria-label="Bulan berikutnya"><svg class="i" aria-hidden="true"><use href="#i-chev" /></svg></button>
+                    <button type="button" class="btn sm ghost" id="shNowM" title="Kembali ke bulan ini">Bulan ini</button>
+                    <span class="grow"></span>
+                    <div class="seg m-seg" id="shMonthMode">
+                      <i class="m-tab-ind" id="shModeInd" aria-hidden="true"></i>
+                      <button type="button" data-mm="cal" class="on">Kalender</button>
+                      <button type="button" data-mm="table">Tabel</button>
+                    </div>
+                  </div>
+                  <div class="sh-mbody" id="shMonthBody"></div>
+                </div>
+
+                <!-- Sub-view 3: Pilih Kota Kemenag RI & Kompas Kiblat -->
+                <div class="sh-pane" data-sp="city">
+                  <div class="sh-qibla-row">
+                    <div class="sh-compass" aria-hidden="true">
+                      <span class="sh-c-n">U</span>
+                      <div class="sh-needle" id="shNeedle"><i></i></div>
+                      <span class="sh-c-dot"></span>
+                    </div>
+                    <div class="sh-qibla-info">
+                      <b id="shQiblaDeg">295° Barat Laut</b>
+                      <span id="shQiblaLoc">Kota Jakarta</span>
+                      <small id="shQiblaKm">7.912 km ke Ka'bah · Kemenag RI</small>
+                    </div>
+                    <button type="button" class="btn sm ghost" id="shDetectBtn" title="Deteksi lokasi otomatis"><svg class="i" aria-hidden="true"><use href="#i-pin" /></svg>Deteksi</button>
+                    <button type="button" class="sh-notif-btn" id="shNotifBtn" title="Pengingat waktu sholat wajib">
+                      <span>Pengingat</span>
+                      <span class="switch on" id="shNotifSw"></span>
+                    </button>
+                  </div>
+                  <div class="ag-search">
+                    <svg class="i" aria-hidden="true"><use href="#i-search" /></svg>
+                    <input id="shCityIn" placeholder="Cari kota atau kabupaten (518 wilayah Kemenag)..." autocomplete="off" aria-label="Cari kota jadwal sholat" />
+                    <button type="button" class="ibtn sm" id="shCityClr" title="Bersihkan" aria-label="Bersihkan pencarian" hidden><svg class="i" aria-hidden="true"><use href="#i-x" /></svg></button>
+                  </div>
+                  <div class="scroll m-tracks" id="shCityList"></div>
+                </div>
               </section>
 
               <!-- ================= SISTEM ================= -->
@@ -484,6 +721,16 @@
         <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></symbol>
         <symbol id="i-clip" viewBox="0 0 24 24"><path d="M21.4 11.1l-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5" /></symbol>
         <symbol id="i-fork" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="12" cy="18" r="2.5" /><path d="M6 8.5v2a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-2M12 13.5v2" /></symbol>
+        <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" /></symbol>
+        <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M17 2l4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3" /></symbol>
+        <symbol id="i-repeat1" viewBox="0 0 24 24"><path d="M17 2l4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3M11 10.5l1.5-1v5" /></symbol>
+        <symbol id="i-thumb-up" viewBox="0 0 24 24"><path d="M7 10v12M15 5.88L14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88z" /></symbol>
+        <symbol id="i-thumb-down" viewBox="0 0 24 24"><path d="M17 14V2M9 18.12L10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88z" /></symbol>
+        <symbol id="i-mute" viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4zM22 9l-6 6M16 9l6 6" /></symbol>
+        <symbol id="i-disc" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="2.5" /></symbol>
+        <symbol id="i-lyrics" viewBox="0 0 24 24"><path d="M4 6h16M4 12h11M4 18h13" /></symbol>
+        <symbol id="i-ext" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></symbol>
+        <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a6.8 6.8 0 0 0 11 11z" /></symbol>
       </defs>
     </svg>
 

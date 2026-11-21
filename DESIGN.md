@@ -1,4 +1,6 @@
-# DESIGN.md — Windows Notch ("Coral")
+# DESIGN.md — Nimbus ("Coral")
+
+> **Catatan:** Ini adalah spesifikasi desain awal (v1, sebelumnya bernama *Windows Notch*). Untuk arsitektur **Nimbus v0.2.0** terkini (4 tab, Multi-Agent Hub, WASAPI spectrum, dan iCal Google Calendar), lihat [README.md](README.md) dan [docs/HANDOFF.md](docs/HANDOFF.md).
 
 Konsep referensi (prototipe interaktif): https://claude.ai/artifact/QKx4oF8nHMV34zS23WNohy
 Prototipe itu adalah sumber kebenaran untuk tampilan dan gerak. Implementasi nyata harus terasa identik.

@@ -8,7 +8,7 @@ export const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => "&#" + c.ch
 export const ld = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
 export const sv = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 export const icon = (id, cls = "") => `<svg class="i ${cls}"><use href="#i-${id}"/></svg>`;
-export const mmss = (s) => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+export const mmss = (s) => { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
 export const ago = (ms) => {
   const s = Math.max(0, (Date.now() - ms) / 1000);
   if (s < 10) return "baru saja";
@@ -61,7 +61,13 @@ const SIZES = {
   toast: [380, 38, 19],
   alert: [480, 126, 26],
 };
-const TAB_H = { agents: 480, media: 330, system: 330, today: 410 };
+const TAB_H = { agents: 340, media: 274, sholat: 272, system: 248, today: 296 };
+
+export function setTabHeight(t, h) {
+  if (!TAB_H[t] || TAB_H[t] === h) return;
+  TAB_H[t] = h;
+  if (S.open && S.tab === t) layout();
+}
 
 export function mode() {
   if (S.open) return "open";
